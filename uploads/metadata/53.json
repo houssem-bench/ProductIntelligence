@@ -1,0 +1,38 @@
+{
+  "image_id": "53",
+  "original_path": "C:\\Users\\Houss\\Documents\\google-lens-python-master\\google-lens-python-master\\uploads\\originals\\53.jpg",
+  "products": [
+    {
+      "product_id": "1",
+      "source_image_id": "53",
+      "label": "cake",
+      "confidence": 0.2945,
+      "bbox": {
+        "x": 326,
+        "y": 384,
+        "width": 207,
+        "height": 136
+      },
+      "crop_path": "C:\\Users\\Houss\\Documents\\google-lens-python-master\\google-lens-python-master\\uploads\\crops\\20260406_140126_523931_brownies\\1.jpg",
+      "created_at": "2026-04-06T13:01:26.799929+00:00",
+      "extra": {}
+    },
+    {
+      "product_id": "2",
+      "source_image_id": "53",
+      "label": "book",
+      "confidence": 0.0165,
+      "bbox": {
+        "x": 117,
+        "y": 221,
+        "width": 519,
+        "height": 359
+      },
+      "crop_path": "C:\\Users\\Houss\\Documents\\google-lens-python-master\\google-lens-python-master\\uploads\\crops\\20260406_140126_523931_brownies\\2.jpg",
+      "created_at": "2026-04-06T13:01:26.818824+00:00",
+      "extra": {}
+    }
+  ],
+  "total_products": 2,
+  "status": "success"
+}

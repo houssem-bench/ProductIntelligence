@@ -1,0 +1,8 @@
+requests
+beautifulsoup4
+flask
+google-search-results
+opencv-python
+google-generativeai
+duckduckgo-search
+ultralytics>=8.3.0

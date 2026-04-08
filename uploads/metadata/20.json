@@ -1,0 +1,98 @@
+{
+  "image_id": "20",
+  "original_path": "C:\\Users\\Houss\\Documents\\google-lens-python-master\\google-lens-python-master\\uploads\\originals\\20.jpg",
+  "products": [
+    {
+      "product_id": "1",
+      "source_image_id": "20",
+      "label": "bottle",
+      "confidence": 0.8546,
+      "bbox": {
+        "x": 127,
+        "y": 0,
+        "width": 26,
+        "height": 86
+      },
+      "crop_path": "C:\\Users\\Houss\\Documents\\google-lens-python-master\\google-lens-python-master\\uploads\\crops\\images\\1.jpg",
+      "created_at": "2026-03-23T17:44:09.091405+00:00",
+      "extra": {}
+    },
+    {
+      "product_id": "2",
+      "source_image_id": "20",
+      "label": "book",
+      "confidence": 0.2628,
+      "bbox": {
+        "x": 35,
+        "y": 60,
+        "width": 78,
+        "height": 98
+      },
+      "crop_path": "C:\\Users\\Houss\\Documents\\google-lens-python-master\\google-lens-python-master\\uploads\\crops\\images\\2.jpg",
+      "created_at": "2026-03-23T17:44:09.093403+00:00",
+      "extra": {}
+    },
+    {
+      "product_id": "3",
+      "source_image_id": "20",
+      "label": "bottle",
+      "confidence": 0.1503,
+      "bbox": {
+        "x": 197,
+        "y": 7,
+        "width": 44,
+        "height": 40
+      },
+      "crop_path": "C:\\Users\\Houss\\Documents\\google-lens-python-master\\google-lens-python-master\\uploads\\crops\\images\\3.jpg",
+      "created_at": "2026-03-23T17:44:09.096410+00:00",
+      "extra": {}
+    },
+    {
+      "product_id": "4",
+      "source_image_id": "20",
+      "label": "book",
+      "confidence": 0.1365,
+      "bbox": {
+        "x": 51,
+        "y": 14,
+        "width": 36,
+        "height": 47
+      },
+      "crop_path": "C:\\Users\\Houss\\Documents\\google-lens-python-master\\google-lens-python-master\\uploads\\crops\\images\\4.jpg",
+      "created_at": "2026-03-23T17:44:09.098391+00:00",
+      "extra": {}
+    },
+    {
+      "product_id": "5",
+      "source_image_id": "20",
+      "label": "book",
+      "confidence": 0.1229,
+      "bbox": {
+        "x": 87,
+        "y": 13,
+        "width": 39,
+        "height": 58
+      },
+      "crop_path": "C:\\Users\\Houss\\Documents\\google-lens-python-master\\google-lens-python-master\\uploads\\crops\\images\\5.jpg",
+      "created_at": "2026-03-23T17:44:09.100412+00:00",
+      "extra": {}
+    },
+    {
+      "product_id": "6",
+      "source_image_id": "20",
+      "label": "bottle",
+      "confidence": 0.1155,
+      "bbox": {
+        "x": 148,
+        "y": 6,
+        "width": 30,
+        "height": 36
+      },
+      "crop_path": "C:\\Users\\Houss\\Documents\\google-lens-python-master\\google-lens-python-master\\uploads\\crops\\images\\6.jpg",
+      "created_at": "2026-03-23T17:44:09.102405+00:00",
+      "extra": {}
+    }
+  ],
+  "total_products": 6,
+  "status": "success"
+}

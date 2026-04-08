@@ -1,0 +1,203 @@
+{
+  "image_id": "b67bbc89-81f4-4110-8764-4ada39566f44",
+  "original_path": "C:\\Users\\Houss\\Documents\\google-lens-python-master\\google-lens-python-master\\uploads\\originals\\b67bbc89-81f4-4110-8764-4ada39566f44.jpg",
+  "products": [
+    {
+      "product_id": "36b0f5fc-cdc9-464d-b664-173553ef9c5d",
+      "source_image_id": "b67bbc89-81f4-4110-8764-4ada39566f44",
+      "label": "bottle",
+      "confidence": 0.6515,
+      "bbox": {
+        "x": 127,
+        "y": 0,
+        "width": 26,
+        "height": 85
+      },
+      "crop_path": "C:\\Users\\Houss\\Documents\\google-lens-python-master\\google-lens-python-master\\uploads\\crops\\b67bbc89-81f4-4110-8764-4ada39566f44\\36b0f5fc-cdc9-464d-b664-173553ef9c5d.jpg",
+      "created_at": "2026-03-23T16:42:50.601433+00:00",
+      "extra": {}
+    },
+    {
+      "product_id": "0b1cfee1-ae8f-4103-bb8b-61acdb944cba",
+      "source_image_id": "b67bbc89-81f4-4110-8764-4ada39566f44",
+      "label": "book",
+      "confidence": 0.5117,
+      "bbox": {
+        "x": 158,
+        "y": 85,
+        "width": 45,
+        "height": 69
+      },
+      "crop_path": "C:\\Users\\Houss\\Documents\\google-lens-python-master\\google-lens-python-master\\uploads\\crops\\b67bbc89-81f4-4110-8764-4ada39566f44\\0b1cfee1-ae8f-4103-bb8b-61acdb944cba.jpg",
+      "created_at": "2026-03-23T16:42:50.604436+00:00",
+      "extra": {}
+    },
+    {
+      "product_id": "02ed9dd9-99a9-46da-b45f-7e0d9f36e359",
+      "source_image_id": "b67bbc89-81f4-4110-8764-4ada39566f44",
+      "label": "book",
+      "confidence": 0.3607,
+      "bbox": {
+        "x": 35,
+        "y": 60,
+        "width": 77,
+        "height": 97
+      },
+      "crop_path": "C:\\Users\\Houss\\Documents\\google-lens-python-master\\google-lens-python-master\\uploads\\crops\\b67bbc89-81f4-4110-8764-4ada39566f44\\02ed9dd9-99a9-46da-b45f-7e0d9f36e359.jpg",
+      "created_at": "2026-03-23T16:42:50.606483+00:00",
+      "extra": {}
+    },
+    {
+      "product_id": "e8a36cbd-2423-449b-a491-9183a9649daf",
+      "source_image_id": "b67bbc89-81f4-4110-8764-4ada39566f44",
+      "label": "cup",
+      "confidence": 0.2656,
+      "bbox": {
+        "x": 202,
+        "y": 7,
+        "width": 39,
+        "height": 39
+      },
+      "crop_path": "C:\\Users\\Houss\\Documents\\google-lens-python-master\\google-lens-python-master\\uploads\\crops\\b67bbc89-81f4-4110-8764-4ada39566f44\\e8a36cbd-2423-449b-a491-9183a9649daf.jpg",
+      "created_at": "2026-03-23T16:42:50.609438+00:00",
+      "extra": {}
+    },
+    {
+      "product_id": "20386deb-c4c2-4644-bb87-b62a9081f2b5",
+      "source_image_id": "b67bbc89-81f4-4110-8764-4ada39566f44",
+      "label": "book",
+      "confidence": 0.1734,
+      "bbox": {
+        "x": 99,
+        "y": 89,
+        "width": 55,
+        "height": 82
+      },
+      "crop_path": "C:\\Users\\Houss\\Documents\\google-lens-python-master\\google-lens-python-master\\uploads\\crops\\b67bbc89-81f4-4110-8764-4ada39566f44\\20386deb-c4c2-4644-bb87-b62a9081f2b5.jpg",
+      "created_at": "2026-03-23T16:42:50.611440+00:00",
+      "extra": {}
+    },
+    {
+      "product_id": "26df183a-34a5-4c12-aba9-3d93de338df2",
+      "source_image_id": "b67bbc89-81f4-4110-8764-4ada39566f44",
+      "label": "bottle",
+      "confidence": 0.1548,
+      "bbox": {
+        "x": 148,
+        "y": 6,
+        "width": 32,
+        "height": 37
+      },
+      "crop_path": "C:\\Users\\Houss\\Documents\\google-lens-python-master\\google-lens-python-master\\uploads\\crops\\b67bbc89-81f4-4110-8764-4ada39566f44\\26df183a-34a5-4c12-aba9-3d93de338df2.jpg",
+      "created_at": "2026-03-23T16:42:50.613437+00:00",
+      "extra": {}
+    },
+    {
+      "product_id": "a2b27c9d-e26d-4124-b910-2b3f64ba0f65",
+      "source_image_id": "b67bbc89-81f4-4110-8764-4ada39566f44",
+      "label": "book",
+      "confidence": 0.1013,
+      "bbox": {
+        "x": 199,
+        "y": 44,
+        "width": 63,
+        "height": 90
+      },
+      "crop_path": "C:\\Users\\Houss\\Documents\\google-lens-python-master\\google-lens-python-master\\uploads\\crops\\b67bbc89-81f4-4110-8764-4ada39566f44\\a2b27c9d-e26d-4124-b910-2b3f64ba0f65.jpg",
+      "created_at": "2026-03-23T16:42:50.615438+00:00",
+      "extra": {}
+    },
+    {
+      "product_id": "892b856e-d661-4085-97d4-e70d8810ab38",
+      "source_image_id": "b67bbc89-81f4-4110-8764-4ada39566f44",
+      "label": "dining table",
+      "confidence": 0.0995,
+      "bbox": {
+        "x": 0,
+        "y": 0,
+        "width": 295,
+        "height": 171
+      },
+      "crop_path": "C:\\Users\\Houss\\Documents\\google-lens-python-master\\google-lens-python-master\\uploads\\crops\\b67bbc89-81f4-4110-8764-4ada39566f44\\892b856e-d661-4085-97d4-e70d8810ab38.jpg",
+      "created_at": "2026-03-23T16:42:50.617434+00:00",
+      "extra": {}
+    },
+    {
+      "product_id": "b9844cf2-532d-42df-8586-e7645251c4b4",
+      "source_image_id": "b67bbc89-81f4-4110-8764-4ada39566f44",
+      "label": "bottle",
+      "confidence": 0.0888,
+      "bbox": {
+        "x": 50,
+        "y": 13,
+        "width": 36,
+        "height": 48
+      },
+      "crop_path": "C:\\Users\\Houss\\Documents\\google-lens-python-master\\google-lens-python-master\\uploads\\crops\\b67bbc89-81f4-4110-8764-4ada39566f44\\b9844cf2-532d-42df-8586-e7645251c4b4.jpg",
+      "created_at": "2026-03-23T16:42:50.619435+00:00",
+      "extra": {}
+    },
+    {
+      "product_id": "197016c1-954b-42d4-82bf-cac8508251a8",
+      "source_image_id": "b67bbc89-81f4-4110-8764-4ada39566f44",
+      "label": "bottle",
+      "confidence": 0.0877,
+      "bbox": {
+        "x": 147,
+        "y": 2,
+        "width": 35,
+        "height": 90
+      },
+      "crop_path": "C:\\Users\\Houss\\Documents\\google-lens-python-master\\google-lens-python-master\\uploads\\crops\\b67bbc89-81f4-4110-8764-4ada39566f44\\197016c1-954b-42d4-82bf-cac8508251a8.jpg",
+      "created_at": "2026-03-23T16:42:50.620434+00:00",
+      "extra": {}
+    },
+    {
+      "product_id": "20042c41-4e10-491b-ad12-de99c88e699a",
+      "source_image_id": "b67bbc89-81f4-4110-8764-4ada39566f44",
+      "label": "bottle",
+      "confidence": 0.0829,
+      "bbox": {
+        "x": 87,
+        "y": 15,
+        "width": 38,
+        "height": 54
+      },
+      "crop_path": "C:\\Users\\Houss\\Documents\\google-lens-python-master\\google-lens-python-master\\uploads\\crops\\b67bbc89-81f4-4110-8764-4ada39566f44\\20042c41-4e10-491b-ad12-de99c88e699a.jpg",
+      "created_at": "2026-03-23T16:42:50.622435+00:00",
+      "extra": {}
+    },
+    {
+      "product_id": "5f5b7fd4-81ff-4847-bfd2-8f6c456c4b6f",
+      "source_image_id": "b67bbc89-81f4-4110-8764-4ada39566f44",
+      "label": "bottle",
+      "confidence": 0.081,
+      "bbox": {
+        "x": 110,
+        "y": 64,
+        "width": 26,
+        "height": 29
+      },
+      "crop_path": "C:\\Users\\Houss\\Documents\\google-lens-python-master\\google-lens-python-master\\uploads\\crops\\b67bbc89-81f4-4110-8764-4ada39566f44\\5f5b7fd4-81ff-4847-bfd2-8f6c456c4b6f.jpg",
+      "created_at": "2026-03-23T16:42:50.624433+00:00",
+      "extra": {}
+    },
+    {
+      "product_id": "45afa786-f7c2-4d4d-a67d-26112a0bcb74",
+      "source_image_id": "b67bbc89-81f4-4110-8764-4ada39566f44",
+      "label": "refrigerator",
+      "confidence": 0.0759,
+      "bbox": {
+        "x": 0,
+        "y": 0,
+        "width": 295,
+        "height": 171
+      },
+      "crop_path": "C:\\Users\\Houss\\Documents\\google-lens-python-master\\google-lens-python-master\\uploads\\crops\\b67bbc89-81f4-4110-8764-4ada39566f44\\45afa786-f7c2-4d4d-a67d-26112a0bcb74.jpg",
+      "created_at": "2026-03-23T16:42:50.625432+00:00",
+      "extra": {}
+    }
+  ],
+  "total_products": 13,
+  "status": "success"
+}
