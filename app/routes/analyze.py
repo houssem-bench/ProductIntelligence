@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
@@ -102,6 +103,13 @@ async def analyze_selected_products(
                 )
 
     results = await asyncio.gather(*(run_one(pid) for pid in selected_ids))
+
+    try:
+        products_list_payload = await container.products_list_service.build_products_list(results)
+        logger.info("[PRODUCTS_LIST] %s", json.dumps(products_list_payload, ensure_ascii=False))
+    except Exception as exc:  # pylint: disable=broad-except
+        logger.exception("[PRODUCTS_LIST] Failed to build payload session=%s error=%s", payload.session_id, exc)
+
     request_id = getattr(request.state, "request_id", "-")
 
     return AnalysisBatchResponse(

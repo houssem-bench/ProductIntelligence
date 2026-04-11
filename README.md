@@ -105,6 +105,7 @@ This order reduces expensive OCR usage and improves average response time.
     ```
 
   - Output: analysis results for selected products only.
+  - Side effect: logs a `products_list` JSON payload in the backend console after each batch analysis.
 
 ## Security
 
@@ -163,6 +164,9 @@ See `.env.example`. Main variables:
 - `LENS_MAX_MATCHES`
 - `LENS_COUNTRY`
 - `LENS_SAFE`
+- `GROK_API_KEY`
+- `GROK_MODEL`
+- `GROK_BASE_URL`
 - `REQUEST_TIMEOUT_SECONDS`
 - `MAX_RETRIES`
 - `CACHE_TTL_SECONDS`

@@ -6,8 +6,10 @@ from app.pipeline.orchestrator import PipelineOrchestrator
 from app.providers.lens_provider import LensProvider
 from app.providers.product_facts_provider import ProductFactsProvider
 from app.services.barcode_service import BarcodeService
+from app.services.grok_service import GrokService
 from app.services.lens_service import LensService
 from app.services.ocr_service import OCRService
+from app.services.products_list_service import ProductsListService
 from app.services.segmentation_service import SegmentationService
 from app.utils.cache import SimpleTTLCache
 
@@ -25,6 +27,8 @@ class ServiceContainer:
         self.lens_service = LensService(self.lens_provider, settings)
         self.ocr_service = OCRService(settings)
         self.segmentation_service = SegmentationService(settings)
+        self.grok_service = GrokService(self.http, settings)
+        self.products_list_service = ProductsListService(self.grok_service)
 
         self.pipeline = PipelineOrchestrator(
             barcode_service=self.barcode_service,

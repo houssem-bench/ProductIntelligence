@@ -45,3 +45,29 @@ class HttpClient:
                 await asyncio.sleep(sleep_seconds)
 
         return None
+
+    async def post_json(
+        self,
+        url: str,
+        *,
+        json_body: dict[str, Any],
+        headers: dict[str, str] | None = None,
+    ) -> dict[str, Any] | None:
+        retries = self._settings.max_retries
+        backoff = self._settings.retry_backoff_seconds
+
+        for attempt in range(retries + 1):
+            try:
+                response = await self._client.post(url, json=json_body, headers=headers)
+                response.raise_for_status()
+                if "application/json" not in response.headers.get("Content-Type", "").lower():
+                    return None
+                return response.json()
+            except (httpx.TimeoutException, httpx.HTTPError, ValueError) as exc:
+                if attempt >= retries:
+                    logger.error("HTTP POST failed url=%s error=%s", url, exc)
+                    return None
+                sleep_seconds = backoff * (2 ** attempt)
+                await asyncio.sleep(sleep_seconds)
+
+        return None
