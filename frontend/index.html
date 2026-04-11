@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProductIntelligence_V2 Demo</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Chivo:wght@400;600;700;900&family=Space+Grotesk:wght@400;500;700&display=swap');
+
+        :root {
+            --bg: #eef8ff;
+            --bg-2: #f4fff2;
+            --card: #ffffff;
+            --line: #c9d7e5;
+            --text: #0f172a;
+            --muted: #425466;
+            --ok: #0e7490;
+            --primary: #1d4ed8;
+            --accent: #ea580c;
+            --soft: #f8fafc;
+            --danger: #b91c1c;
+            --shadow: 0 15px 45px rgba(9, 30, 66, 0.14);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Space Grotesk", "Segoe UI", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at 5% 0%, rgba(29, 78, 216, 0.18), transparent 34%),
+                radial-gradient(circle at 95% 100%, rgba(14, 116, 144, 0.18), transparent 30%),
+                linear-gradient(120deg, var(--bg) 0%, var(--bg-2) 100%);
+            padding: 26px 18px 40px;
+        }
+
+        .shell { max-width: 1160px; margin: 0 auto; }
+
+        .hero {
+            background: linear-gradient(130deg, #0f172a 0%, #1e293b 60%, #334155 100%);
+            border-radius: 18px;
+            box-shadow: var(--shadow);
+            color: #fff;
+            padding: 20px 22px;
+            margin-bottom: 14px;
+        }
+
+        .hero h1 {
+            margin: 0 0 8px;
+            font-family: "Chivo", sans-serif;
+            letter-spacing: 0.3px;
+            font-weight: 900;
+            font-size: 1.6rem;
+        }
+
+        .hero p { margin: 0; opacity: 0.92; }
+
+        .pipeline {
+            margin-top: 14px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .step-chip {
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            border-radius: 999px;
+            padding: 6px 11px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.2px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 1.05fr 1fr;
+            gap: 14px;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 14px;
+            box-shadow: 0 10px 30px rgba(59, 80, 120, 0.1);
+        }
+
+        .card h3 {
+            margin-top: 2px;
+            margin-bottom: 10px;
+            font-family: "Chivo", sans-serif;
+            font-size: 1.06rem;
+            letter-spacing: 0.2px;
+        }
+
+        .dropzone {
+            border: 2px dashed #89a3bd;
+            background: linear-gradient(160deg, #f8fbff 0%, #eef6ff 100%);
+            border-radius: 12px;
+            padding: 16px;
+            min-height: 152px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            text-align: center;
+            transition: all 0.18s ease;
+        }
+
+        .dropzone.active {
+            border-color: var(--primary);
+            background: linear-gradient(160deg, #f0f6ff 0%, #e2ecff 100%);
+            transform: translateY(-1px);
+        }
+
+        .dropzone strong { font-family: "Chivo", sans-serif; }
+        .muted { color: var(--muted); font-size: 14px; }
+
+        #imageInput { display: none; }
+
+        .controls {
+            margin-top: 12px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .seg-mode-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .mode-pill {
+            border: 1px solid #c5d6ea;
+            border-radius: 999px;
+            padding: 6px 12px;
+            background: #fff;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .seg-mode-wrap input[type="radio"] { display: none; }
+        .seg-mode-wrap input[type="radio"]:checked + .mode-pill {
+            border-color: #0e7490;
+            background: #ecfeff;
+            color: #0f766e;
+        }
+
+        .expected-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .expected-input {
+            width: 110px;
+            border: 1px solid #bfd0e2;
+            border-radius: 8px;
+            padding: 8px;
+            font-size: 14px;
+        }
+
+        .button-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 9px;
+            margin-top: 8px;
+        }
+
+        button {
+            border: 0;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-weight: 700;
+            font-family: "Chivo", sans-serif;
+            cursor: pointer;
+            letter-spacing: 0.1px;
+            transition: transform 0.12s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+        }
+
+        button:hover { transform: translateY(-1px); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        #pickBtn {
+            background: #0f172a;
+            color: #fff;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.22);
+        }
+
+        #segmentBtn {
+            background: linear-gradient(120deg, var(--ok), #0f766e);
+            color: #fff;
+            box-shadow: 0 8px 24px rgba(14, 116, 144, 0.25);
+        }
+
+        #analyzeBtn {
+            background: linear-gradient(120deg, var(--primary), #1e40af);
+            color: white;
+            box-shadow: 0 8px 24px rgba(29, 78, 216, 0.25);
+        }
+
+        .preview-wrap {
+            margin-top: 12px;
+            background: var(--soft);
+            border: 1px solid #d7e4f0;
+            border-radius: 12px;
+            padding: 10px;
+        }
+
+        .preview-img {
+            width: 100%;
+            max-height: 270px;
+            object-fit: contain;
+            background: #fff;
+            border: 1px solid #dae4ef;
+            border-radius: 8px;
+        }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 11px; }
+        .product { border: 1px solid #d1d9e3; border-radius: 10px; padding: 9px; background: #fff; }
+        .product img { width: 100%; height: 132px; object-fit: contain; background: #f8fafc; border-radius: 6px; }
+
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 12px; color: white; font-weight: 700; }
+        .barcode { background: #0284c7; }
+        .lens { background: #0e7490; }
+        .ocr { background: #ea580c; }
+        .failed { background: var(--danger); }
+
+        .status {
+            min-height: 22px;
+            margin-top: 8px;
+            font-size: 14px;
+            color: #134e4a;
+        }
+
+        .error-text { color: var(--danger); }
+        .hidden { display: none; }
+        .mt-14 { margin-top: 14px; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+
+        @media (max-width: 940px) {
+            .layout { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <section class="hero">
+            <h1>ProductIntelligence_V2</h1>
+            <p>Analyze products from image with fallback pipeline and per-request diagnostics.</p>
+            <div class="pipeline">
+                <span class="step-chip">1. Barcode / QR</span>
+                <span class="step-chip">2. Lens Lookup</span>
+                <span class="step-chip">3. OCR Fallback</span>
+                <span class="step-chip">4. Ingredient Enrichment</span>
+            </div>
+        </section>
+
+        <div class="layout">
+            <div class="card">
+                <h3>Upload & Mode</h3>
+                <input type="file" id="imageInput" accept="image/*" />
+
+                <div id="dropzone" class="dropzone">
+                    <strong>Drop image here</strong>
+                    <span class="muted">or choose file manually</span>
+                    <button id="pickBtn" type="button">Choose Image</button>
+                </div>
+
+                <div class="controls">
+                    <div class="seg-mode-wrap">
+                        <strong>Mode:</strong>
+                        <label>
+                            <input type="radio" name="segMode" value="auto" checked />
+                            <span class="mode-pill">Auto</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="segMode" value="single" />
+                            <span class="mode-pill">Single product</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="segMode" value="multi" />
+                            <span class="mode-pill">Multiple products</span>
+                        </label>
+                    </div>
+
+                    <div class="expected-wrap">
+                        <label for="expectedProducts" class="muted">Expected products (multi mode):</label>
+                        <input id="expectedProducts" class="expected-input" type="number" min="1" max="12" placeholder="e.g. 3" />
+                    </div>
+
+                    <div class="button-row">
+                        <button id="segmentBtn" type="button">Detect / Prepare</button>
+                        <button id="analyzeBtn" type="button" disabled>Analyze Selected</button>
+                    </div>
+                </div>
+
+                <p id="segmentStatus" class="status muted"></p>
+
+                <div class="preview-wrap">
+                    <p class="muted" id="previewMeta">No image selected.</p>
+                    <img id="previewImg" class="preview-img hidden" alt="Selected file preview" />
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Detected Products</h3>
+                <div id="productsGrid" class="grid"></div>
+            </div>
+        </div>
+
+        <div class="card mt-14">
+            <h3>Results</h3>
+            <div id="results"></div>
+        </div>
+    </div>
+
+<script>
+let currentSessionId = null;
+let currentProducts = [];
+let currentPreviewUrl = null;
+
+const imageInput = document.getElementById('imageInput');
+const dropzone = document.getElementById('dropzone');
+const pickBtn = document.getElementById('pickBtn');
+const segmentBtn = document.getElementById('segmentBtn');
+const analyzeBtn = document.getElementById('analyzeBtn');
+const productsGrid = document.getElementById('productsGrid');
+const resultsDiv = document.getElementById('results');
+const segmentStatus = document.getElementById('segmentStatus');
+const expectedProductsInput = document.getElementById('expectedProducts');
+const previewImg = document.getElementById('previewImg');
+const previewMeta = document.getElementById('previewMeta');
+
+function getSegmentationMode() {
+    const selected = document.querySelector('input[name="segMode"]:checked');
+    return selected ? selected.value : 'auto';
+}
+
+async function parseJsonSafe(response) {
+    const body = await response.text();
+    try {
+        return JSON.parse(body);
+    } catch {
+        return { detail: body || `HTTP ${response.status}` };
+    }
+}
+
+function resetPreview() {
+    if (currentPreviewUrl) {
+        URL.revokeObjectURL(currentPreviewUrl);
+        currentPreviewUrl = null;
+    }
+    previewImg.classList.add('hidden');
+    previewImg.removeAttribute('src');
+    previewMeta.textContent = 'No image selected.';
+}
+
+function renderPreview(file) {
+    if (!file || !file.type.startsWith('image/')) {
+        resetPreview();
+        return;
+    }
+
+    if (currentPreviewUrl) {
+        URL.revokeObjectURL(currentPreviewUrl);
+    }
+
+    currentPreviewUrl = URL.createObjectURL(file);
+    previewImg.src = currentPreviewUrl;
+    previewImg.classList.remove('hidden');
+    previewMeta.textContent = `${file.name} - ${(file.size / 1024).toFixed(1)} KB`;
+}
+
+function assignDroppedFile(file) {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    imageInput.files = dt.files;
+    renderPreview(file);
+}
+
+pickBtn.addEventListener('click', () => imageInput.click());
+
+imageInput.addEventListener('change', () => {
+    const file = imageInput.files && imageInput.files[0] ? imageInput.files[0] : null;
+    renderPreview(file);
+});
+
+['dragenter', 'dragover'].forEach((eventName) => {
+    dropzone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        dropzone.classList.add('active');
+    });
+});
+
+['dragleave', 'drop'].forEach((eventName) => {
+    dropzone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        dropzone.classList.remove('active');
+    });
+});
+
+dropzone.addEventListener('drop', (event) => {
+    const files = event.dataTransfer && event.dataTransfer.files ? event.dataTransfer.files : null;
+    if (!files || !files.length) {
+        return;
+    }
+
+    const file = files[0];
+    if (!file.type.startsWith('image/')) {
+        segmentStatus.textContent = 'Please drop an image file only.';
+        segmentStatus.classList.add('error-text');
+        return;
+    }
+
+    segmentStatus.classList.remove('error-text');
+    assignDroppedFile(file);
+});
+
+async function analyzeSelectedProducts(productIds, { autoSingle = false } = {}) {
+    if (!currentSessionId || !productIds.length) {
+        throw new Error('No selected products to analyze.');
+    }
+
+    resultsDiv.innerHTML = `<p class="muted">${autoSingle ? 'Single mode: analyzing full image...' : 'Analyzing selected products...'}</p>`;
+
+    const response = await fetch('/analyze/selected', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            session_id: currentSessionId,
+            product_ids: productIds
+        })
+    });
+
+    const data = await parseJsonSafe(response);
+    if (!response.ok) {
+        const reqId = data.request_id ? ` (request: ${data.request_id})` : '';
+        throw new Error((data.detail || 'Analysis failed') + reqId);
+    }
+
+    renderResults(data.results || []);
+}
+
+segmentBtn.addEventListener('click', async () => {
+    const file = imageInput.files[0];
+    if (!file) {
+        alert('Please choose an image first.');
+        return;
+    }
+
+    segmentStatus.classList.remove('error-text');
+    segmentStatus.textContent = 'Preparing analysis...';
+    resultsDiv.innerHTML = '';
+    productsGrid.innerHTML = '';
+    analyzeBtn.disabled = true;
+
+    const formData = new FormData();
+    formData.append('image', file);
+    const mode = getSegmentationMode();
+    formData.append('segmentation_mode', mode);
+
+    const expectedProductsValue = Number.parseInt(expectedProductsInput.value || '', 10);
+    if (mode === 'multi' && Number.isInteger(expectedProductsValue) && expectedProductsValue > 0) {
+        formData.append('expected_products', String(expectedProductsValue));
+    }
+
+    try {
+        const response = await fetch('/analyze', { method: 'POST', body: formData });
+        const data = await parseJsonSafe(response);
+
+        if (!response.ok) {
+            throw new Error(data.detail || 'Segmentation failed');
+        }
+
+        currentSessionId = data.session_id;
+        currentProducts = data.products || [];
+        const modeInfo = data.segmentation_mode ? ` [mode=${data.segmentation_mode}]` : '';
+        segmentStatus.textContent = `Detected ${data.total_products} product(s).${modeInfo}`;
+
+        renderProducts(currentProducts);
+
+        if (mode === 'single') {
+            if (currentProducts.length === 0) {
+                throw new Error('Single mode returned no product.');
+            }
+
+            analyzeBtn.disabled = true;
+            await analyzeSelectedProducts([currentProducts[0].product_id], { autoSingle: true });
+            segmentStatus.textContent = 'Single product mode: full image analyzed directly.';
+            return;
+        }
+
+        analyzeBtn.disabled = currentProducts.length === 0;
+        if (currentProducts.length > 0) {
+            segmentStatus.textContent += ' Select what you want to analyze.';
+        }
+    } catch (error) {
+        segmentStatus.classList.add('error-text');
+        segmentStatus.textContent = `Error: ${error.message}`;
+    }
+});
+
+analyzeBtn.addEventListener('click', async () => {
+    const selected = Array.from(document.querySelectorAll('.product-checkbox:checked'))
+        .map(el => el.value);
+
+    if (!currentSessionId || selected.length === 0) {
+        alert('Select at least one product.');
+        return;
+    }
+
+    try {
+        await analyzeSelectedProducts(selected, { autoSingle: false });
+    } catch (error) {
+        resultsDiv.innerHTML = `<p style="color:#dc2626;">${error.message}</p>`;
+    }
+});
+
+function renderProducts(products) {
+    productsGrid.innerHTML = '';
+
+    for (const product of products) {
+        const box = document.createElement('div');
+        box.className = 'product';
+        box.innerHTML = `
+            <img src="${product.crop_url}" alt="Product crop" />
+            <p><strong>ID:</strong> ${product.product_id}</p>
+            <p><strong>Conf:</strong> ${(product.confidence * 100).toFixed(1)}%</p>
+            <label>
+                <input class="product-checkbox" type="checkbox" value="${product.product_id}" checked />
+                Analyze this product
+            </label>
+        `;
+        productsGrid.appendChild(box);
+    }
+}
+
+function renderResults(results) {
+    if (results.length === 0) {
+        resultsDiv.innerHTML = '<p class="muted">No results.</p>';
+        return;
+    }
+
+    resultsDiv.innerHTML = '';
+    for (const result of results) {
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        const ingredients = result.ingredients && result.ingredients.length
+            ? result.ingredients.join(', ')
+            : 'No ingredients extracted';
+
+        let detailsBlock = '';
+        if (result.source === 'failed' && result.debug) {
+            const reasonLines = Object.entries(result.debug)
+                .map(([k, v]) => `${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`)
+                .join('\n');
+            detailsBlock = `<p><strong>Diagnostics:</strong></p><pre>${reasonLines}</pre>`;
+        }
+
+        card.innerHTML = `
+            <p><strong>Product ID:</strong> ${result.product_id}</p>
+            <p><strong>Name:</strong> ${result.name}</p>
+            <p><strong>Category:</strong> ${result.category}</p>
+            <p><strong>Confidence:</strong> ${(result.confidence * 100).toFixed(1)}%</p>
+            <p><strong>Method:</strong> <span class="badge ${result.source}">${result.source.toUpperCase()}</span></p>
+            <p><strong>Ingredients:</strong></p>
+            <pre>${ingredients}</pre>
+            ${detailsBlock}
+        `;
+
+        resultsDiv.appendChild(card);
+    }
+}
+</script>
+</body>
+</html>
