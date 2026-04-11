@@ -35,6 +35,12 @@ class Settings:
     off_user_agent: str
     serpapi_key: str
     public_base_url: str
+    enable_ngrok: bool
+    ngrok_auth_token: str
+    ngrok_domain: str
+    lens_max_matches: int
+    lens_country: str
+    lens_safe: str
 
     enable_yolo: bool
     yolo_model_path: str
@@ -70,7 +76,13 @@ def get_settings() -> Settings:
         max_parallel_analyses=max(1, int(os.getenv("MAX_PARALLEL_ANALYSES", "4"))),
         off_user_agent=os.getenv("OFF_USER_AGENT", "ProductIntelligenceV2/1.0"),
         serpapi_key=os.getenv("SERPAPI_KEY", "").strip(),
-        public_base_url=os.getenv("PUBLIC_BASE_URL", "").rstrip("/"),
+        public_base_url=(os.getenv("PUBLIC_BASE_URL") or os.getenv("NGROK_BASE_URL", "")).rstrip("/"),
+        enable_ngrok=_to_bool(os.getenv("ENABLE_NGROK"), default=False),
+        ngrok_auth_token=os.getenv("NGROK_AUTHTOKEN", "").strip(),
+        ngrok_domain=os.getenv("NGROK_DOMAIN", "").strip(),
+        lens_max_matches=max(1, int(os.getenv("LENS_MAX_MATCHES", "5"))),
+        lens_country=os.getenv("LENS_COUNTRY", "TN").strip(),
+        lens_safe=os.getenv("LENS_SAFE", "off").strip().lower(),
         enable_yolo=_to_bool(os.getenv("ENABLE_YOLO"), default=True),
         yolo_model_path=os.getenv("YOLO_MODEL_PATH", default_model_path),
         yolo_conf_threshold=float(os.getenv("YOLO_CONF_THRESHOLD", "0.2")),

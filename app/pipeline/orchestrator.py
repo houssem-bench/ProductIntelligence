@@ -77,6 +77,10 @@ class PipelineOrchestrator:
         lens = await self._lens.resolve_name(crop_url, detected_label)
         if lens:
             debug["lens_candidates"] = lens.candidates
+            if lens.upload_route:
+                debug["lens_upload_route"] = lens.upload_route
+            if lens.public_image_url:
+                debug["lens_public_image_url"] = lens.public_image_url
             facts = await self._facts.fetch_by_name(lens.title)
             if facts and facts.ingredients:
                 logger.info("[LENS] success product_id=%s", product_id)

@@ -27,7 +27,10 @@ class LensProvider:
             "url": image_url,
             "api_key": self._settings.serpapi_key,
             "type": "products",
+            "safe": self._settings.lens_safe,
         }
+        if self._settings.lens_country:
+            params["country"] = self._settings.lens_country
         data = await self._http.get_json("https://serpapi.com/search.json", params=params)
         if not data:
             return []

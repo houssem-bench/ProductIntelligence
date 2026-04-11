@@ -34,4 +34,5 @@ class ServiceContainer:
         )
 
     async def close(self) -> None:
+        self.lens_service.close()
         await self.http.close()

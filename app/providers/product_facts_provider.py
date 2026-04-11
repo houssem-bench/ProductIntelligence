@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 from app.core.config import Settings
@@ -49,48 +50,95 @@ class ProductFactsProvider:
         return None
 
     async def fetch_by_name(self, name: str) -> ProductFacts | None:
-        normalized = name.strip().lower()
-        if not normalized:
+        candidates = self._prepare_name_candidates(name)
+        if not candidates:
             return None
 
-        cache_key = f"name::{normalized}"
-        cached = self._cache.get(cache_key)
-        if cached:
-            return ProductFacts(**cached)
+        for candidate in candidates:
+            cache_key = f"name::{candidate.lower()}"
+            cached = self._cache.get(cache_key)
+            if cached:
+                return ProductFacts(**cached)
 
         headers = {"User-Agent": self._settings.off_user_agent}
 
-        off_params = {
-            "search_terms": name,
-            "search_simple": 1,
-            "action": "process",
-            "json": 1,
-            "page_size": 3,
-        }
-        off_data = await self._http.get_json(OFF_SEARCH_URL, params=off_params, headers=headers)
-        if off_data and off_data.get("products"):
-            best = self._pick_best_product(off_data.get("products", []))
-            parsed = self._parse_off(best)
-            if parsed and parsed.ingredients:
-                self._cache.set(cache_key, parsed.model_dump())
-                return parsed
+        for candidate in candidates:
+            off_params = {
+                "search_terms": candidate,
+                "search_simple": 1,
+                "action": "process",
+                "json": 1,
+                "page_size": 3,
+            }
+            off_data = await self._http.get_json(OFF_SEARCH_URL, params=off_params, headers=headers)
+            if off_data and off_data.get("products"):
+                best = self._pick_best_product(off_data.get("products", []))
+                parsed = self._parse_off(best)
+                if parsed and parsed.ingredients:
+                    self._cache_name_result(candidates, parsed)
+                    return parsed
 
-        obf_params = {
-            "search_terms": name,
-            "search_simple": 1,
-            "action": "process",
-            "json": 1,
-            "page_size": 3,
-        }
-        obf_data = await self._http.get_json(OBF_SEARCH_URL, params=obf_params, headers=headers)
-        if obf_data and obf_data.get("products"):
-            best = self._pick_best_product(obf_data.get("products", []))
-            parsed = self._parse_obf(best)
-            if parsed and parsed.ingredients:
-                self._cache.set(cache_key, parsed.model_dump())
-                return parsed
+            obf_params = {
+                "search_terms": candidate,
+                "search_simple": 1,
+                "action": "process",
+                "json": 1,
+                "page_size": 3,
+            }
+            obf_data = await self._http.get_json(OBF_SEARCH_URL, params=obf_params, headers=headers)
+            if obf_data and obf_data.get("products"):
+                best = self._pick_best_product(obf_data.get("products", []))
+                parsed = self._parse_obf(best)
+                if parsed and parsed.ingredients:
+                    self._cache_name_result(candidates, parsed)
+                    return parsed
 
         return None
+
+    def _cache_name_result(self, candidates: list[str], parsed: ProductFacts) -> None:
+        payload = parsed.model_dump()
+        for candidate in candidates:
+            self._cache.set(f"name::{candidate.lower()}", payload)
+
+    @staticmethod
+    def _prepare_name_candidates(name: str) -> list[str]:
+        base = " ".join(name.strip().split())
+        if not base:
+            return []
+
+        # Keep the original title first, then progressively cleaner forms.
+        variants = [base]
+        cleaned = base
+
+        cleanup_patterns = [
+            r"[\(\[\{].*?[\)\]\}]",  # remove bracketed metadata
+            r"\b\d+\s?[xX]\s?\d+(?:[\.,]\d+)?\s?(?:ml|l|cl|dl|g|kg|mg|oz)\b",
+            r"\b\d+(?:[\.,]\d+)?\s?(?:ml|l|cl|dl|g|kg|mg|oz)\b",
+            r"\b(?:pack|lot|set)\s+of\s+\d+\b",
+            r"\b\d+\s?(?:pcs?|pieces?)\b",
+        ]
+        for pattern in cleanup_patterns:
+            cleaned = re.sub(pattern, " ", cleaned, flags=re.IGNORECASE)
+
+        cleaned = re.sub(r"[\|/_-]+", " ", cleaned)
+        cleaned = " ".join(cleaned.split())
+        if cleaned and cleaned.lower() != base.lower():
+            variants.append(cleaned)
+
+        tokens = cleaned.split()
+        if len(tokens) > 6:
+            variants.append(" ".join(tokens[:6]))
+
+        deduped: list[str] = []
+        seen: set[str] = set()
+        for variant in variants:
+            key = variant.casefold()
+            if not variant or key in seen:
+                continue
+            seen.add(key)
+            deduped.append(variant)
+
+        return deduped
 
     def _pick_best_product(self, products: list[dict[str, Any]]) -> dict[str, Any]:
         if not products:

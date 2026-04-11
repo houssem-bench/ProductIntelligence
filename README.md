@@ -156,6 +156,13 @@ See `.env.example`. Main variables:
 
 - `SERPAPI_KEY`
 - `PUBLIC_BASE_URL`
+- `NGROK_BASE_URL`
+- `ENABLE_NGROK`
+- `NGROK_AUTHTOKEN`
+- `NGROK_DOMAIN`
+- `LENS_MAX_MATCHES`
+- `LENS_COUNTRY`
+- `LENS_SAFE`
 - `REQUEST_TIMEOUT_SECONDS`
 - `MAX_RETRIES`
 - `CACHE_TTL_SECONDS`
@@ -178,7 +185,7 @@ Included tests:
 ## Current limitations
 
 - OCR depends on local Tesseract availability.
-- Lens step requires both `SERPAPI_KEY` and a public image URL base (`PUBLIC_BASE_URL`) reachable from SerpAPI.
+- Lens step requires `SERPAPI_KEY` plus a public image URL base (`PUBLIC_BASE_URL` or `NGROK_BASE_URL`) reachable from SerpAPI, or `ENABLE_NGROK=true` so the service can create one at runtime.
 - In-memory session/cache storage is not distributed.
 
 ## Future improvements
