@@ -55,6 +55,16 @@ class SegmentationService:
         self._max_yolo_area_ratio = 0.25
         self._max_yolo_dim_ratio = 0.70
         self._edge_threshold = 20
+        self._yolo_world_classes = [
+            "food product",
+            "package",
+            "box",
+            "bottle",
+            "can",
+            "carton",
+            "jar",
+            "pouch",
+        ]
 
         if self._settings.enable_yolo:
             self._init_yolo_model()
@@ -244,17 +254,34 @@ class SegmentationService:
         model_path = self._resolve_model_path(self._settings.yolo_model_path)
 
         if not model_path.exists():
-            logger.info("YOLO disabled: model file not found at %s", model_path)
+            logger.info("YOLO-World disabled: model file not found at %s", model_path)
             return
 
         try:
-            from ultralytics import YOLO  # type: ignore[import-not-found]
-
-            self._yolo = YOLO(str(model_path))
-            logger.info("YOLO enabled with model=%s", model_path)
+            from ultralytics import YOLOWorld  # type: ignore[import-not-found]
+            
+            self._yolo = YOLOWorld(str(model_path))
+            if hasattr(self._yolo, 'set_classes'):
+                self._yolo.set_classes(self._yolo_world_classes)
+                logger.info("YOLO-World enabled with model=%s and classes=%s", model_path, self._yolo_world_classes)
+            else:
+                logger.warning("Model loaded but set_classes() not available. Using standard YOLO detection.")
+        except ImportError as exc:
+            self._yolo = None
+            logger.error("YOLOWorld library not available: %s", exc)
         except Exception as exc:
             self._yolo = None
-            logger.info("YOLO unavailable, using contour segmentation only: %s", exc)
+            logger.error("Failed to load YOLO-World model: %s", exc)
+
+    def set_yolo_world_classes(self, classes: list[str]) -> None:
+        """Set or update YOLO-World detection classes at runtime."""
+        self._yolo_world_classes = classes
+        if self._yolo is not None and hasattr(self._yolo, 'set_classes'):
+            try:
+                self._yolo.set_classes(classes)
+                logger.info("YOLO-World classes updated: %s", classes)
+            except Exception as exc:
+                logger.warning("Failed to update YOLO-World classes: %s", exc)
 
     def _detect_with_yolo(self, image: np.ndarray) -> list[Detection]:
         try:

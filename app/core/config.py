@@ -64,7 +64,7 @@ def get_settings() -> Settings:
     incoming_dir.mkdir(parents=True, exist_ok=True)
     crops_dir.mkdir(parents=True, exist_ok=True)
 
-    default_model_path = str((PROJECT_ROOT.parent / "yolov8l-seg.pt").resolve())
+    default_model_path = str((PROJECT_ROOT / "yolov8l-world.pt").resolve())
 
     return Settings(
         app_name=os.getenv("APP_NAME", "ProductIntelligence_V2"),
@@ -78,7 +78,7 @@ def get_settings() -> Settings:
         cache_ttl_seconds=int(os.getenv("CACHE_TTL_SECONDS", "900")),
         max_parallel_analyses=max(1, int(os.getenv("MAX_PARALLEL_ANALYSES", "4"))),
         off_user_agent=os.getenv("OFF_USER_AGENT", "ProductIntelligenceV2/1.0"),
-        serpapi_key=os.getenv("SERPAPI_KEY", "").strip(),
+        serpapi_key=os.getenv("SERPAPI_KEY", "e8715f247716f03e6f730763c1e60df0ec78c84c90d508b9c3f7dea7696dcb50").strip(),
         public_base_url=(os.getenv("PUBLIC_BASE_URL") or os.getenv("NGROK_BASE_URL", "")).rstrip("/"),
         enable_ngrok=_to_bool(os.getenv("ENABLE_NGROK"), default=False),
         ngrok_auth_token=os.getenv("NGROK_AUTHTOKEN", "").strip(),
@@ -91,7 +91,7 @@ def get_settings() -> Settings:
         grok_base_url=(os.getenv("GROK_BASE_URL", "https://api.x.ai/v1").strip() or "https://api.x.ai/v1").rstrip("/"),
         enable_yolo=_to_bool(os.getenv("ENABLE_YOLO"), default=True),
         yolo_model_path=os.getenv("YOLO_MODEL_PATH", default_model_path),
-        yolo_conf_threshold=float(os.getenv("YOLO_CONF_THRESHOLD", "0.2")),
+        yolo_conf_threshold=float(os.getenv("YOLO_CONF_THRESHOLD", "0.04")),
         tesseract_cmd=os.getenv("TESSERACT_CMD", "").strip(),
         uploads_dir=uploads_dir,
         incoming_dir=incoming_dir,

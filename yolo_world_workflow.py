@@ -109,7 +109,7 @@ class YOLOWorldProductWorkflow:
         self,
         model_name: str = "yolov8s-world.pt",
         world_classes: Optional[List[str]] = None,
-        conf_threshold: float = 0.05,
+        conf_threshold: float = 0.2,
         iou_threshold: float = 0.2,
         padding_ratio: float = 0.08,
         min_area_ratio: float = 0.008,
