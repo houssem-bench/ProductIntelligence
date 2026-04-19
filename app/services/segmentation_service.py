@@ -155,12 +155,13 @@ class SegmentationService:
     ) -> list[Detection]:
         mode = (segmentation_mode or "auto").strip().lower()
 
+        if mode == "single":
+            height, width = image.shape[:2]
+            return [Detection(bbox=(0, 0, width, height), confidence=1.0, label="product")]
+
         detections = self._detect_with_yolo(image)
         detections.sort(key=lambda det: float(det.confidence), reverse=True)
         detections = self._limit_for_expected(detections, expected_products)
-
-        if mode == "single":
-            return detections[:1]
         return detections[:12]
 
     def _detect_with_yolo(self, image: np.ndarray) -> list[Detection]:

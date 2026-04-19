@@ -87,22 +87,20 @@ def test_detect_products_returns_empty_when_both_detectors_empty(tmp_path, monke
     assert detections == []
 
 
-def test_single_mode_keeps_only_highest_confidence(tmp_path, monkeypatch):
+def test_single_mode_skips_segmentation_and_uses_full_image(tmp_path, monkeypatch):
     service = SegmentationService(_build_settings(tmp_path))
-    service._yolo = object()
     image = np.zeros((300, 500, 3), dtype=np.uint8)
+    called = {"yolo": False}
 
-    monkeypatch.setattr(
-        service,
-        "_detect_with_yolo",
-        lambda _image: [
-            Detection((40, 40, 90, 80), 0.52, "product"),
-            Detection((10, 10, 120, 100), 0.81, "product"),
-        ],
-    )
+    def _fake_yolo(_image):
+        called["yolo"] = True
+        return [Detection((10, 10, 120, 100), 0.81, "product")]
+
+    monkeypatch.setattr(service, "_detect_with_yolo", _fake_yolo)
 
     detections = service._detect_products(image, segmentation_mode="single")
 
     assert len(detections) == 1
-    assert detections[0].bbox == (10, 10, 120, 100)
-    assert detections[0].confidence == 0.81
+    assert detections[0].bbox == (0, 0, 500, 300)
+    assert detections[0].confidence == 1.0
+    assert called["yolo"] is False
