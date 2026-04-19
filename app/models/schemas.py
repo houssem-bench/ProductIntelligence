@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -67,3 +68,28 @@ class AnalysisBatchResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     service: str
+
+
+class ProductCacheItem(BaseModel):
+    id: int
+    name: str
+    brand: str | None = None
+    category: str
+    analysis_source: str
+    confidence: float
+    ean: str | None = None
+    fingerprint: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class ProductCacheListResponse(BaseModel):
+    total: int
+    skip: int
+    limit: int
+    items: list[ProductCacheItem] = Field(default_factory=list)
+
+
+class ProductCacheDetailResponse(BaseModel):
+    id: int
+    full_json: dict[str, Any]

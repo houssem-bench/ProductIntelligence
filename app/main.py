@@ -17,6 +17,7 @@ from app.core.container import ServiceContainer
 from app.logging.setup import configure_logging
 from app.routes.analyze import router as analyze_router
 from app.routes.health import router as health_router
+from app.routes.products import router as products_router
 from app.utils.request_context import clear_request_id, set_request_id
 
 
@@ -129,3 +130,4 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
 
 app.include_router(health_router)
 app.include_router(analyze_router)
+app.include_router(products_router)

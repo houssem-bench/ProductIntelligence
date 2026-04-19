@@ -31,6 +31,7 @@ class Settings:
     retry_backoff_seconds: float
     cache_ttl_seconds: int
     max_parallel_analyses: int
+    database_url: str
 
     off_user_agent: str
     serpapi_key: str
@@ -65,6 +66,7 @@ def get_settings() -> Settings:
     crops_dir.mkdir(parents=True, exist_ok=True)
 
     default_model_path = str((PROJECT_ROOT / "yolov8l-world.pt").resolve())
+    default_database_url = f"sqlite:///{(PROJECT_ROOT / 'product_cache.db').resolve()}"
 
     return Settings(
         app_name=os.getenv("APP_NAME", "ProductIntelligence_V2"),
@@ -77,6 +79,7 @@ def get_settings() -> Settings:
         retry_backoff_seconds=float(os.getenv("RETRY_BACKOFF_SECONDS", "0.5")),
         cache_ttl_seconds=int(os.getenv("CACHE_TTL_SECONDS", "900")),
         max_parallel_analyses=max(1, int(os.getenv("MAX_PARALLEL_ANALYSES", "4"))),
+        database_url=os.getenv("DATABASE_URL", default_database_url).strip() or default_database_url,
         off_user_agent=os.getenv("OFF_USER_AGENT", "ProductIntelligenceV2/1.0"),
         serpapi_key=os.getenv("SERPAPI_KEY", "e8715f247716f03e6f730763c1e60df0ec78c84c90d508b9c3f7dea7696dcb50").strip(),
         public_base_url=(os.getenv("PUBLIC_BASE_URL") or os.getenv("NGROK_BASE_URL", "https://subattenuate-joanne-vacuous.ngrok-free.dev")).rstrip("/"),
