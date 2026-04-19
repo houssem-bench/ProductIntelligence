@@ -167,6 +167,10 @@ See `.env.example`. Main variables:
 - `GROK_API_KEY`
 - `GROK_MODEL`
 - `GROK_BASE_URL`
+- `GROQ_API_KEY` (supported alias for integration tests)
+- `GROQ_MODEL` (supported alias for integration tests)
+- `GROQ_BASE_URL` (supported alias for integration tests, e.g. `https://api.groq.com/openai/v1`)
+- `RUN_GROQ_INTEGRATION` (set to `1` to run real Groq test)
 - `REQUEST_TIMEOUT_SECONDS`
 - `MAX_RETRIES`
 - `CACHE_TTL_SECONDS`
@@ -179,6 +183,22 @@ See `.env.example`. Main variables:
 
 ```bash
 pytest -q
+```
+
+Run Groq real integration test (optional):
+
+```bash
+RUN_GROQ_INTEGRATION=1 GROQ_API_KEY=your_key_here GROQ_MODEL=llama-3.3-70b-versatile GROQ_BASE_URL=https://api.groq.com/openai/v1 pytest tests/test_grok_title_extraction.py -m integration -q -s
+```
+
+PowerShell:
+
+```powershell
+$env:RUN_GROQ_INTEGRATION = "1"
+$env:GROQ_API_KEY = "your_key_here"
+$env:GROQ_MODEL = "llama-3.3-70b-versatile"
+$env:GROQ_BASE_URL = "https://api.groq.com/openai/v1"
+pytest tests/test_grok_title_extraction.py -m integration -q -s
 ```
 
 Included tests:

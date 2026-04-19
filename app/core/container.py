@@ -46,6 +46,7 @@ class ServiceContainer:
             ocr_service=self.ocr_service,
             facts_provider=self.product_facts_provider,
             product_cache_service=self.product_cache_service,
+            grok_service=self.grok_service,
         )
 
     async def close(self) -> None:

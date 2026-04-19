@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 import logging
+import re
+import unicodedata
+from difflib import SequenceMatcher
+from typing import Literal
+from typing import Any
 
 from app.models.schemas import ProductAnalysis
 from app.providers.product_facts_provider import ProductFactsProvider
 from app.services.barcode_service import BarcodeService
+from app.services.grok_service import GrokService
 from app.services.lens_service import LensService
 from app.services.ocr_service import OCRService
 from app.services.product_cache_service import ProductCacheService
@@ -21,12 +27,14 @@ class PipelineOrchestrator:
         ocr_service: OCRService,
         facts_provider: ProductFactsProvider,
         product_cache_service: ProductCacheService | None = None,
+        grok_service: GrokService | None = None,
     ) -> None:
         self._barcode = barcode_service
         self._lens = lens_service
         self._ocr = ocr_service
         self._facts = facts_provider
         self._product_cache = product_cache_service
+        self._grok = grok_service
 
     async def analyze_product(
         self,
@@ -92,14 +100,20 @@ class PipelineOrchestrator:
             ready = True
         lens = await self._lens.resolve_name(crop_url, detected_label)
         if lens:
+            preferred_category = self._infer_preferred_category(detected_label)
             debug["lens_candidates"] = lens.candidates
             if lens.upload_route:
                 debug["lens_upload_route"] = lens.upload_route
             if lens.public_image_url:
                 debug["lens_public_image_url"] = lens.public_image_url
-            facts = await self._facts.fetch_by_name(lens.title)
-            if facts and facts.ingredients:
-                logger.info("[LENS] success product_id=%s", product_id)
+            groq_lookup = await self._lookup_via_groq_brand_company(
+                lens.title,
+                debug,
+                preferred_category=preferred_category,
+            )
+            if groq_lookup is not None:
+                facts, groq_query = groq_lookup
+                logger.info("[LENS] success via Groq+OFF product_id=%s query=%s", product_id, groq_query)
                 result = ProductAnalysis(
                     product_id=product_id,
                     source="lens",
@@ -115,9 +129,34 @@ class PipelineOrchestrator:
                 return self._persist_result(
                     result,
                     ean=barcode.code if barcode else None,
-                    extraction_method="pipeline:lens:name_lookup",
+                    extraction_method="pipeline:lens:grok_brand_company_lookup",
                 )
-            debug["lens_lookup"] = "no_ingredients"
+
+            if self._should_skip_raw_lens_fallback_after_groq(debug):
+                debug["lens_lookup"] = "skipped_raw_title_after_groq_structured_miss"
+            else:
+                facts = await self._facts.fetch_by_name(lens.title, preferred_category=preferred_category)
+                if facts and facts.ingredients:
+                    logger.info("[LENS] success product_id=%s", product_id)
+                    result = ProductAnalysis(
+                        product_id=product_id,
+                        source="lens",
+                        confidence=self._score_confidence("lens", len(facts.ingredients), True),
+                        category=facts.category,
+                        name=facts.name,
+                        brand=facts.brand,
+                        ingredients=facts.ingredients,
+                        additives=facts.additives,
+                        lens_title=lens.title,
+                        debug=debug,
+                    )
+                    return self._persist_result(
+                        result,
+                        ean=barcode.code if barcode else None,
+                        extraction_method="pipeline:lens:name_lookup",
+                    )
+
+            debug.setdefault("lens_lookup", "no_ingredients")
         elif ready:
             debug["lens_status"] = "no_match"
 
@@ -128,7 +167,8 @@ class PipelineOrchestrator:
             debug["ocr_text_chars"] = len(ocr.raw_text)
 
             if ocr.name:
-                facts = await self._facts.fetch_by_name(ocr.name)
+                preferred_category = self._infer_preferred_category(ocr.category, detected_label)
+                facts = await self._facts.fetch_by_name(ocr.name, preferred_category=preferred_category)
                 if facts and facts.ingredients:
                     logger.info("[OCR] success via name lookup product_id=%s", product_id)
                     result = ProductAnalysis(
@@ -263,3 +303,215 @@ class PipelineOrchestrator:
         ingredient_bonus = min(0.12, ingredients_count * 0.01)
         api_bonus = 0.04 if api_backed else 0.0
         return round(min(0.99, base + ingredient_bonus + api_bonus), 3)
+
+    async def _lookup_via_groq_brand_company(
+        self,
+        best_lens_title: str,
+        debug: dict[str, object],
+        *,
+        preferred_category: Literal["food", "cosmetic"] | None = None,
+    ) -> tuple[Any, str] | None:
+        if self._grok is None:
+            return None
+
+        extracted = await self._grok.extract_product_title_from_url_results(
+            url_results=[{"title": best_lens_title}]
+        )
+        if not isinstance(extracted, dict):
+            debug["grok_title_extraction"] = "none"
+            return None
+        debug["grok_title_extraction"] = "parsed"
+
+        brand_raw = extracted.get("brand")
+        company_raw = extracted.get("company")
+        product_name_raw = extracted.get("product_name")
+        brand = brand_raw.strip() if isinstance(brand_raw, str) and brand_raw.strip() else None
+        company = company_raw.strip() if isinstance(company_raw, str) and company_raw.strip() else None
+        product_name = product_name_raw.strip() if isinstance(product_name_raw, str) and product_name_raw.strip() else None
+
+        debug["grok_brand"] = brand
+        debug["grok_company"] = company
+        debug["grok_product_name"] = product_name
+        debug["grok_confidence"] = extracted.get("confidence")
+
+        if preferred_category is None:
+            preferred_category = self._infer_preferred_category(product_name, brand, company)
+            if preferred_category is not None:
+                debug["grok_inferred_category"] = preferred_category
+
+        queries: list[str] = []
+        if product_name and brand and company:
+            queries.append(f"{product_name} {brand} {company}")
+        if product_name and brand:
+            queries.append(f"{product_name} {brand}")
+        if product_name and company:
+            queries.append(f"{product_name} {company}")
+        # Avoid broad generic lookups (e.g. "Tomate") when brand/company context is present.
+        if product_name and not (brand or company):
+            queries.append(product_name)
+        if not product_name:
+            if brand and company:
+                queries.append(f"{brand} {company}")
+            if brand:
+                queries.append(brand)
+            if company:
+                queries.append(company)
+
+        if not brand and not company:
+            fallback_word = self._first_clean_word(best_lens_title)
+            if fallback_word:
+                queries.append(fallback_word)
+                debug["grok_lookup_fallback"] = "first_word"
+
+        seen: set[str] = set()
+        for query in queries:
+            key = query.casefold()
+            if key in seen:
+                continue
+            seen.add(key)
+
+            facts = await self._facts.fetch_by_name(query, preferred_category=preferred_category)
+            if facts and facts.ingredients:
+                if not self._is_relevant_facts_match(
+                    facts_name=facts.name,
+                    facts_brand=facts.brand,
+                    product_name=product_name,
+                    expected_brand=brand,
+                ):
+                    rejected = debug.get("grok_relevance_rejected_queries")
+                    if isinstance(rejected, list):
+                        rejected.append(query)
+                    else:
+                        debug["grok_relevance_rejected_queries"] = [query]
+                    continue
+                debug["grok_lookup_query"] = query
+                return facts, query
+
+        return None
+
+    @staticmethod
+    def _should_skip_raw_lens_fallback_after_groq(debug: dict[str, object]) -> bool:
+        extraction_state = debug.get("grok_title_extraction")
+        confidence_raw = debug.get("grok_confidence")
+
+        if extraction_state != "parsed":
+            return False
+
+        try:
+            confidence = float(confidence_raw) if confidence_raw is not None else 0.0
+        except (TypeError, ValueError):
+            confidence = 0.0
+
+        return confidence >= 0.6
+
+    @staticmethod
+    def _first_clean_word(text: str) -> str | None:
+        normalized = " ".join(text.strip().split())
+        if not normalized:
+            return None
+
+        token = normalized.split(" ", 1)[0]
+        cleaned = re.sub(r"^\W+|\W+$", "", token, flags=re.UNICODE).strip()
+        return cleaned or None
+
+    @staticmethod
+    def _infer_preferred_category(*values: str | None) -> Literal["food", "cosmetic"] | None:
+        merged = " ".join(v.strip().lower() for v in values if isinstance(v, str) and v.strip())
+        if not merged:
+            return None
+
+        cosmetic_keywords = ("cosmetic", "beauty", "shampoo", "soap", "lotion", "cream", "makeup", "skincare")
+        food_keywords = (
+            "food",
+            "beverage",
+            "drink",
+            "juice",
+            "milk",
+            "snack",
+            "yogurt",
+            "biscuit",
+            "biscuits",
+            "cookie",
+            "cookies",
+            "chocolate",
+            "tomate",
+            "tomato",
+            "thon",
+            "tuna",
+        )
+
+        if any(word in merged for word in cosmetic_keywords):
+            return "cosmetic"
+        if any(word in merged for word in food_keywords):
+            return "food"
+        return None
+
+    @classmethod
+    def _is_relevant_facts_match(
+        cls,
+        *,
+        facts_name: str,
+        facts_brand: str | None,
+        product_name: str | None,
+        expected_brand: str | None,
+    ) -> bool:
+        if not product_name:
+            return True
+
+        expected_tokens = cls._tokenize_for_match(product_name)
+        if not expected_tokens:
+            return True
+
+        if cls._is_placeholder_name(facts_name):
+            return cls._brands_match(expected_brand, facts_brand)
+
+        facts_tokens = cls._tokenize_for_match(facts_name)
+        if not facts_tokens:
+            # OFF/OBF sometimes lacks a useful product name. In that case, allow a strong brand match.
+            return cls._brands_match(expected_brand, facts_brand)
+
+        for expected in expected_tokens:
+            if cls._has_approx_token_match(expected, facts_tokens):
+                return True
+        return False
+
+    @staticmethod
+    def _is_placeholder_name(name: str) -> bool:
+        normalized = " ".join(name.strip().lower().split())
+        return normalized in {"unknown", "n/a", "na", "none", "null", "-"}
+
+    @classmethod
+    def _brands_match(cls, expected_brand: str | None, facts_brand: str | None) -> bool:
+        if not expected_brand or not facts_brand:
+            return False
+
+        expected_tokens = cls._tokenize_for_match(expected_brand)
+        facts_tokens = cls._tokenize_for_match(facts_brand)
+        if not expected_tokens or not facts_tokens:
+            return False
+
+        for expected in expected_tokens:
+            if cls._has_approx_token_match(expected, facts_tokens):
+                return True
+        return False
+
+    @staticmethod
+    def _has_approx_token_match(expected: str, candidates: set[str]) -> bool:
+        for token in candidates:
+            if token == expected:
+                return True
+            if token.startswith(expected) or expected.startswith(token):
+                return True
+            if len(token) >= 4 and len(expected) >= 4:
+                similarity = SequenceMatcher(None, token, expected).ratio()
+                if similarity >= 0.78:
+                    return True
+        return False
+
+    @staticmethod
+    def _tokenize_for_match(text: str) -> set[str]:
+        normalized = unicodedata.normalize("NFKD", text)
+        ascii_text = normalized.encode("ascii", "ignore").decode("ascii")
+        lowered = ascii_text.lower()
+        cleaned = re.sub(r"[^a-z0-9]+", " ", lowered)
+        return {token for token in cleaned.split() if len(token) >= 3}

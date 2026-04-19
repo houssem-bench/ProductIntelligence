@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 import re
+import unicodedata
+from typing import Literal
 from typing import Any
 
 from app.core.config import Settings
@@ -49,7 +51,12 @@ class ProductFactsProvider:
 
         return None
 
-    async def fetch_by_name(self, name: str) -> ProductFacts | None:
+    async def fetch_by_name(
+        self,
+        name: str,
+        *,
+        preferred_category: Literal["food", "cosmetic"] | None = None,
+    ) -> ProductFacts | None:
         candidates = self._prepare_name_candidates(name)
         if not candidates:
             return None
@@ -61,37 +68,40 @@ class ProductFactsProvider:
                 return ProductFacts(**cached)
 
         headers = {"User-Agent": self._settings.off_user_agent}
+        source_order: list[str]
+        if preferred_category == "food":
+            source_order = ["off"]
+        elif preferred_category == "cosmetic":
+            source_order = ["obf"]
+        else:
+            source_order = ["off", "obf"]
 
         for candidate in candidates:
-            off_params = {
-                "search_terms": candidate,
-                "search_simple": 1,
-                "action": "process",
-                "json": 1,
-                "page_size": 3,
-            }
-            off_data = await self._http.get_json(OFF_SEARCH_URL, params=off_params, headers=headers)
-            if off_data and off_data.get("products"):
-                best = self._pick_best_product(off_data.get("products", []))
-                parsed = self._parse_off(best)
-                if parsed and parsed.ingredients:
-                    self._cache_name_result(candidates, parsed)
-                    return parsed
+            for source in source_order:
+                params = {
+                    "search_terms": candidate,
+                    "search_simple": 1,
+                    "action": "process",
+                    "json": 1,
+                    "page_size": 3,
+                }
 
-            obf_params = {
-                "search_terms": candidate,
-                "search_simple": 1,
-                "action": "process",
-                "json": 1,
-                "page_size": 3,
-            }
-            obf_data = await self._http.get_json(OBF_SEARCH_URL, params=obf_params, headers=headers)
-            if obf_data and obf_data.get("products"):
-                best = self._pick_best_product(obf_data.get("products", []))
-                parsed = self._parse_obf(best)
-                if parsed and parsed.ingredients:
-                    self._cache_name_result(candidates, parsed)
-                    return parsed
+                if source == "off":
+                    data = await self._http.get_json(OFF_SEARCH_URL, params=params, headers=headers)
+                    if data and data.get("products"):
+                        best = self._pick_best_product(data.get("products", []), query=candidate)
+                        parsed = self._parse_off(best)
+                        if parsed and parsed.ingredients:
+                            self._cache_name_result(candidates, parsed)
+                            return parsed
+                else:
+                    data = await self._http.get_json(OBF_SEARCH_URL, params=params, headers=headers)
+                    if data and data.get("products"):
+                        best = self._pick_best_product(data.get("products", []), query=candidate)
+                        parsed = self._parse_obf(best)
+                        if parsed and parsed.ingredients:
+                            self._cache_name_result(candidates, parsed)
+                            return parsed
 
         return None
 
@@ -106,14 +116,14 @@ class ProductFactsProvider:
         if not base:
             return []
 
-        # Keep the original title first, then progressively cleaner forms.
-        variants = [base]
-        cleaned = base
+        # Titles often append seller names after a separator (e.g. "Product - Seller").
+        base_without_suffix = re.sub(r"\s[-–—]\s.*$", "", base).strip()
+        cleaned = ProductFactsProvider._strip_marketplace_noise(base_without_suffix or base)
 
         cleanup_patterns = [
             r"[\(\[\{].*?[\)\]\}]",  # remove bracketed metadata
-            r"\b\d+\s?[xX]\s?\d+(?:[\.,]\d+)?\s?(?:ml|l|cl|dl|g|kg|mg|oz)\b",
-            r"\b\d+(?:[\.,]\d+)?\s?(?:ml|l|cl|dl|g|kg|mg|oz)\b",
+            r"\b\d+\s?[xX]\s?\d+(?:[\.,]\d+)?\s?(?:ml|l|cl|dl|lt|ltr|liter|liters|litre|litres|g|gr|grs|gram|grams|gramme|grammes|kg|kgs|mg|mcg|oz|lb|lbs|fl\.?oz)\b",
+            r"\b\d+(?:[\.,]\d+)?\s?(?:ml|l|cl|dl|lt|ltr|liter|liters|litre|litres|g|gr|grs|gram|grams|gramme|grammes|kg|kgs|mg|mcg|oz|lb|lbs|fl\.?oz)\b",
             r"\b(?:pack|lot|set)\s+of\s+\d+\b",
             r"\b\d+\s?(?:pcs?|pieces?)\b",
         ]
@@ -122,10 +132,12 @@ class ProductFactsProvider:
 
         cleaned = re.sub(r"[\|/_-]+", " ", cleaned)
         cleaned = " ".join(cleaned.split())
-        if cleaned and cleaned.lower() != base.lower():
-            variants.append(cleaned)
+        primary = cleaned or base
 
-        tokens = cleaned.split()
+        # Put cleaned primary query first to avoid noisy terms in initial lookups.
+        variants = [primary]
+
+        tokens = primary.split()
         if len(tokens) > 6:
             variants.append(" ".join(tokens[:6]))
 
@@ -140,15 +152,75 @@ class ProductFactsProvider:
 
         return deduped
 
-    def _pick_best_product(self, products: list[dict[str, Any]]) -> dict[str, Any]:
+    @staticmethod
+    def _strip_marketplace_noise(text: str) -> str:
+        cleaned = text
+        cleaned = re.sub(r"[\u2010-\u2015]+", " ", cleaned)
+        marketplace_patterns = [
+            r"\b[\w-]*buy[\w-]*\b",  # elsabuy, buy-now, etc.
+            r"\bby\b",
+            r"\b(?:shop|store|seller|marketplace|deal)\b",
+            r"\b(?:izy|zedna|talabat|ayshek|aychek|nestle|wheat|honey|mint|gel|paste|miel|green|clean|fresh|vanille)\b",
+        ]
+
+        for pattern in marketplace_patterns:
+            cleaned = re.sub(pattern, " ", cleaned, flags=re.IGNORECASE)
+
+        return " ".join(cleaned.split())
+
+    def _pick_best_product(self, products: list[dict[str, Any]], *, query: str) -> dict[str, Any]:
         if not products:
             return {}
-        sorted_products = sorted(
-            products,
-            key=lambda p: len(p.get("ingredients", [])) if isinstance(p.get("ingredients"), list) else 0,
-            reverse=True,
-        )
-        return sorted_products[0]
+
+        query_tokens = self._tokenize_for_match(query)
+        normalized_query_tokens = [token for token in self._normalize_for_match(query).split() if len(token) >= 3]
+        head_size = max(1, len(normalized_query_tokens) // 2)
+        head_tokens = set(normalized_query_tokens[:head_size])
+
+        def _score(product: dict[str, Any]) -> float:
+            name_text = str(
+                product.get("product_name")
+                or product.get("product_name_en")
+                or product.get("generic_name")
+                or ""
+            )
+            brand_text = str(product.get("brands") or "")
+            name_tokens = self._tokenize_for_match(name_text)
+            brand_tokens = self._tokenize_for_match(brand_text)
+
+            overlap_count = len(query_tokens & name_tokens)
+            head_overlap_count = len(head_tokens & name_tokens)
+            overlap_ratio = overlap_count / max(1, len(query_tokens))
+            brand_overlap_count = len(query_tokens & brand_tokens)
+            ingredient_count = len(product.get("ingredients", [])) if isinstance(product.get("ingredients"), list) else 0
+
+            query_norm = self._normalize_for_match(query)
+            name_norm = self._normalize_for_match(name_text)
+            phrase_bonus = 2.0 if query_norm and query_norm in name_norm else 0.0
+
+            ingredient_bonus = min(0.6, ingredient_count * 0.03)
+            return (
+                overlap_count * 3.0
+                + head_overlap_count * 3.5
+                + overlap_ratio * 4.0
+                + brand_overlap_count * 1.2
+                + phrase_bonus
+                + ingredient_bonus
+            )
+
+        return max(products, key=_score)
+
+    @staticmethod
+    def _normalize_for_match(text: str) -> str:
+        normalized = unicodedata.normalize("NFKD", text)
+        ascii_text = normalized.encode("ascii", "ignore").decode("ascii")
+        lowered = ascii_text.lower()
+        return " ".join(re.sub(r"[^a-z0-9]+", " ", lowered).split())
+
+    @classmethod
+    def _tokenize_for_match(cls, text: str) -> set[str]:
+        normalized = cls._normalize_for_match(text)
+        return {token for token in normalized.split() if len(token) >= 3}
 
     def _parse_off(self, product: dict[str, Any]) -> ProductFacts | None:
         ingredients: list[str] = []
@@ -172,8 +244,9 @@ class ProductFactsProvider:
         if not ingredients:
             return None
 
+        parsed_name = self._best_product_name(product)
         return ProductFacts(
-            name=str(product.get("product_name") or "Unknown"),
+            name=parsed_name,
             brand=str(product.get("brands") or "") or None,
             category="food",
             ingredients=list(dict.fromkeys(ingredients)),
@@ -197,11 +270,28 @@ class ProductFactsProvider:
         if not ingredients:
             return None
 
+        parsed_name = self._best_product_name(product)
         return ProductFacts(
-            name=str(product.get("product_name") or "Unknown"),
+            name=parsed_name,
             brand=str(product.get("brands") or "") or None,
             category="cosmetic",
             ingredients=list(dict.fromkeys(ingredients)),
             additives=[],
             source_detail="openbeautyfacts",
         )
+
+    @staticmethod
+    def _best_product_name(product: dict[str, Any]) -> str:
+        fields = (
+            "product_name",
+            "product_name_en",
+            "product_name_fr",
+            "generic_name",
+            "generic_name_en",
+            "generic_name_fr",
+        )
+        for field in fields:
+            value = product.get(field)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+        return "Unknown"
