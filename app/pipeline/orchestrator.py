@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
+import time
 import unicodedata
 from difflib import SequenceMatcher
 from typing import Literal
@@ -46,11 +48,28 @@ class PipelineOrchestrator:
         detected_label: str,
     ) -> ProductAnalysis:
         debug: dict[str, object] = {}
-        barcode = self._barcode.extract(image_path)
+
+        barcode_start_ms = time.perf_counter()
+        logger.info("[BARCODE] extract start product_id=%s source=crop path=%s", product_id, image_path)
+        barcode = await asyncio.to_thread(self._barcode.extract, image_path)
+        logger.info(
+            "[BARCODE] extract end product_id=%s source=crop elapsed_ms=%.1f found=%s",
+            product_id,
+            (time.perf_counter() - barcode_start_ms) * 1000,
+            barcode is not None,
+        )
         barcode_from = "crop"
 
         if barcode is None and original_image_path and original_image_path != image_path:
-            barcode = self._barcode.extract(original_image_path)
+            fallback_start_ms = time.perf_counter()
+            logger.info("[BARCODE] extract start product_id=%s source=original path=%s", product_id, original_image_path)
+            barcode = await asyncio.to_thread(self._barcode.extract, original_image_path)
+            logger.info(
+                "[BARCODE] extract end product_id=%s source=original elapsed_ms=%.1f found=%s",
+                product_id,
+                (time.perf_counter() - fallback_start_ms) * 1000,
+                barcode is not None,
+            )
             if barcode:
                 barcode_from = "original"
 
@@ -98,7 +117,15 @@ class PipelineOrchestrator:
             debug["lens_status"] = reason
         else:
             ready = True
+
+        lens_start_ms = time.perf_counter()
         lens = await self._lens.resolve_name(crop_url, detected_label)
+        logger.info(
+            "[LENS] resolve end product_id=%s elapsed_ms=%.1f found=%s",
+            product_id,
+            (time.perf_counter() - lens_start_ms) * 1000,
+            lens is not None,
+        )
         if lens:
             preferred_category = self._infer_preferred_category(detected_label)
             debug["lens_candidates"] = lens.candidates
@@ -162,7 +189,14 @@ class PipelineOrchestrator:
 
         # 3) OCR (last fallback)
         logger.info("[OCR] stage start product_id=%s", product_id)
-        ocr = self._ocr.extract(image_path)
+        ocr_start_ms = time.perf_counter()
+        ocr = await asyncio.to_thread(self._ocr.extract, image_path)
+        logger.info(
+            "[OCR] extract end product_id=%s elapsed_ms=%.1f found=%s",
+            product_id,
+            (time.perf_counter() - ocr_start_ms) * 1000,
+            ocr is not None,
+        )
         if ocr:
             debug["ocr_text_chars"] = len(ocr.raw_text)
 

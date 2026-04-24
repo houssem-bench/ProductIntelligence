@@ -68,6 +68,9 @@ def _build_settings(
         uploads_dir=Path("uploads"),
         incoming_dir=Path("uploads/incoming"),
         crops_dir=Path("uploads/crops"),
+        phone_capture_ttl_seconds=300,
+        phone_capture_max_upload_mb=15,
+        phone_capture_poll_interval_ms=2000,
     )
 
 

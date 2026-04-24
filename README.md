@@ -14,6 +14,7 @@ ProductIntelligence_V2 analyzes images containing multiple products and extracts
 - Structured logging with request IDs.
 - Optimized fallback order: Barcode -> Lens -> OCR.
 - Minimal frontend for product selection before analysis.
+- Optional one-shot "Capture from Phone" flow to send a single photo from smartphone to desktop.
 - Simple tests for pipeline behavior and `/analyze` endpoint.
 
 ## Architecture
@@ -74,11 +75,19 @@ This order reduces expensive OCR usage and improves average response time.
 1. `POST /analyze` with image.
   - Supports `segmentation_mode` = `auto` | `single` | `multi`.
   - Optional `expected_products` for multi mode.
+  - Input image can come from desktop file upload/drag-drop or one-shot phone capture transfer.
 2. Backend segments products and returns crops + session ID.
 3. Frontend displays all crops with checkboxes.
 4. User selects products to analyze.
 5. `POST /analyze/selected` with selected `product_ids`.
 6. Backend runs pipeline only for selected products.
+
+Phone capture helper flow:
+
+1. User clicks `Capture from Phone` in desktop UI.
+2. Backend creates a short-lived one-shot session token.
+3. Phone opens the generated link/QR page and uploads one image.
+4. Desktop auto-downloads that image and injects it into the same analyze flow.
 
 ## API Endpoints
 
@@ -106,6 +115,18 @@ This order reduces expensive OCR usage and improves average response time.
 
   - Output: analysis results for selected products only.
   - Side effect: logs a `products_list` JSON payload in the backend console after each batch analysis.
+
+- `POST /phone-capture/session`
+  - Creates short-lived one-shot session for smartphone capture handoff.
+
+- `GET /phone-capture/session/{token}/status`
+  - Returns session status (`pending`, `ready`, `consumed`, `expired`).
+
+- `POST /phone-capture/session/{token}/upload`
+  - Phone uploads single image for desktop session.
+
+- `GET /phone-capture/session/{token}/consume`
+  - Desktop consumes uploaded image once and reuses existing `/analyze` flow.
 
 ## Security
 
@@ -178,6 +199,9 @@ See `.env.example`. Main variables:
 - `ENABLE_YOLO`
 - `YOLO_MODEL_PATH`
 - `TESSERACT_CMD`
+- `PHONE_CAPTURE_TTL_SECONDS`
+- `PHONE_CAPTURE_MAX_UPLOAD_MB`
+- `PHONE_CAPTURE_POLL_INTERVAL_MS`
 
 ## Tests
 

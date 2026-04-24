@@ -65,6 +65,25 @@ class AnalysisBatchResponse(BaseModel):
     results: list[ProductAnalysis]
 
 
+class PhoneCaptureSessionResponse(BaseModel):
+    token: str
+    status: str
+    expires_at: datetime
+    phone_page_url: str
+    upload_url: str
+    status_url: str
+    consume_url: str
+    poll_interval_ms: int
+
+
+class PhoneCaptureStatusResponse(BaseModel):
+    token: str
+    status: str
+    expires_at: datetime
+    has_image: bool
+    filename: str | None = None
+
+
 class HealthResponse(BaseModel):
     status: str
     service: str

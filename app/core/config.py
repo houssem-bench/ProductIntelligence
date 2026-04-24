@@ -54,6 +54,9 @@ class Settings:
     uploads_dir: Path
     incoming_dir: Path
     crops_dir: Path
+    phone_capture_ttl_seconds: int
+    phone_capture_max_upload_mb: int
+    phone_capture_poll_interval_ms: int
 
 
 @lru_cache(maxsize=1)
@@ -89,7 +92,7 @@ def get_settings() -> Settings:
         lens_max_matches=max(1, int(os.getenv("LENS_MAX_MATCHES", "5"))),
         lens_country=os.getenv("LENS_COUNTRY", "TN").strip(),
         lens_safe=os.getenv("LENS_SAFE", "off").strip().lower(),
-        grok_api_key=os.getenv("GROK_API_KEY", "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").strip(),
+        grok_api_key=os.getenv("GROK_API_KEY", "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").strip(),
         grok_model=os.getenv("GROK_MODEL", "llama-3.3-70b-versatile").strip(),
         grok_base_url=(os.getenv("GROK_BASE_URL", "https://api.groq.com/openai/v1").strip() or "https://api.groq.com/openai/v11").rstrip("/"),
         enable_yolo=_to_bool(os.getenv("ENABLE_YOLO"), default=True),
@@ -99,4 +102,7 @@ def get_settings() -> Settings:
         uploads_dir=uploads_dir,
         incoming_dir=incoming_dir,
         crops_dir=crops_dir,
+        phone_capture_ttl_seconds=max(30, int(os.getenv("PHONE_CAPTURE_TTL_SECONDS", "300"))),
+        phone_capture_max_upload_mb=max(1, int(os.getenv("PHONE_CAPTURE_MAX_UPLOAD_MB", "15"))),
+        phone_capture_poll_interval_ms=max(500, int(os.getenv("PHONE_CAPTURE_POLL_INTERVAL_MS", "2000"))),
     )

@@ -193,6 +193,12 @@
             box-shadow: 0 8px 20px rgba(15, 23, 42, 0.22);
         }
 
+        #phoneCaptureBtn {
+            background: linear-gradient(120deg, var(--accent), #c2410c);
+            color: #fff;
+            box-shadow: 0 8px 20px rgba(194, 65, 12, 0.24);
+        }
+
         #segmentBtn {
             background: linear-gradient(120deg, var(--ok), #0f766e);
             color: #fff;
@@ -211,6 +217,30 @@
             border: 1px solid #d7e4f0;
             border-radius: 12px;
             padding: 10px;
+        }
+
+        .phone-panel {
+            margin-top: 10px;
+            border: 1px solid #f0d3bf;
+            background: #fff7f2;
+            border-radius: 12px;
+            padding: 10px;
+            display: grid;
+            gap: 8px;
+        }
+
+        .phone-panel img {
+            width: 160px;
+            height: 160px;
+            border: 1px solid #f3e0d5;
+            border-radius: 8px;
+            background: #fff;
+        }
+
+        .phone-link {
+            font-size: 13px;
+            word-break: break-all;
+            color: var(--primary);
         }
 
         .preview-img {
@@ -270,7 +300,16 @@
                 <div id="dropzone" class="dropzone">
                     <strong>Drop image here</strong>
                     <span class="muted">or choose file manually</span>
-                    <button id="pickBtn" type="button">Choose Image</button>
+                    <div class="button-row">
+                        <button id="pickBtn" type="button">Choose Image</button>
+                        <button id="phoneCaptureBtn" type="button">Capture from Phone</button>
+                    </div>
+                </div>
+
+                <div id="phoneCapturePanel" class="phone-panel hidden">
+                    <p id="phoneCaptureStatus" class="muted">Waiting to start phone capture...</p>
+                    <img id="phoneCaptureQr" alt="Phone capture QR" />
+                    <a id="phoneCaptureLink" class="phone-link" href="#" target="_blank" rel="noopener noreferrer"></a>
                 </div>
 
                 <div class="controls">
@@ -325,10 +364,19 @@
 let currentSessionId = null;
 let currentProducts = [];
 let currentPreviewUrl = null;
+let selectedImageFile = null;
+let phonePollTimer = null;
+let phonePollInFlight = false;
+let activePhoneSessionToken = null;
 
 const imageInput = document.getElementById('imageInput');
 const dropzone = document.getElementById('dropzone');
 const pickBtn = document.getElementById('pickBtn');
+const phoneCaptureBtn = document.getElementById('phoneCaptureBtn');
+const phoneCapturePanel = document.getElementById('phoneCapturePanel');
+const phoneCaptureStatus = document.getElementById('phoneCaptureStatus');
+const phoneCaptureQr = document.getElementById('phoneCaptureQr');
+const phoneCaptureLink = document.getElementById('phoneCaptureLink');
 const segmentBtn = document.getElementById('segmentBtn');
 const analyzeBtn = document.getElementById('analyzeBtn');
 const productsGrid = document.getElementById('productsGrid');
@@ -353,6 +401,7 @@ async function parseJsonSafe(response) {
 }
 
 function resetPreview() {
+    selectedImageFile = null;
     if (currentPreviewUrl) {
         URL.revokeObjectURL(currentPreviewUrl);
         currentPreviewUrl = null;
@@ -363,6 +412,8 @@ function resetPreview() {
 }
 
 function renderPreview(file) {
+    selectedImageFile = file || null;
+
     if (!file || !file.type.startsWith('image/')) {
         resetPreview();
         return;
@@ -379,17 +430,164 @@ function renderPreview(file) {
 }
 
 function assignDroppedFile(file) {
-    const dt = new DataTransfer();
-    dt.items.add(file);
-    imageInput.files = dt.files;
+    try {
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        imageInput.files = dt.files;
+    } catch {
+        // Browsers can block programmatic FileList assignment; selectedImageFile is still used.
+    }
     renderPreview(file);
 }
 
+function getCurrentImageFile() {
+    if (selectedImageFile) {
+        return selectedImageFile;
+    }
+    return imageInput.files && imageInput.files[0] ? imageInput.files[0] : null;
+}
+
+function setPhoneCaptureStatus(message, isError = false) {
+    phoneCaptureStatus.textContent = message;
+    phoneCaptureStatus.classList.toggle('error-text', isError);
+}
+
+function stopPhoneCapturePolling({ keepPanel = false } = {}) {
+    if (phonePollTimer) {
+        clearInterval(phonePollTimer);
+        phonePollTimer = null;
+    }
+    phonePollInFlight = false;
+    activePhoneSessionToken = null;
+    phoneCaptureBtn.disabled = false;
+
+    if (!keepPanel) {
+        phoneCapturePanel.classList.add('hidden');
+        phoneCaptureQr.removeAttribute('src');
+        phoneCaptureLink.removeAttribute('href');
+        phoneCaptureLink.textContent = '';
+    }
+}
+
+function parseFilenameFromHeader(headerValue, fallback = 'phone-capture.jpg') {
+    if (!headerValue) {
+        return fallback;
+    }
+
+    const match = /filename="?([^";]+)"?/i.exec(headerValue);
+    if (!match || !match[1]) {
+        return fallback;
+    }
+
+    return match[1];
+}
+
+async function pullPhoneCaptureToDesktop(token, suggestedFilename) {
+    const response = await fetch(`/phone-capture/session/${encodeURIComponent(token)}/consume`);
+    if (!response.ok) {
+        const data = await parseJsonSafe(response);
+        throw new Error(data.detail || 'Could not transfer phone photo');
+    }
+
+    const blob = await response.blob();
+    const contentDisposition = response.headers.get('Content-Disposition');
+    const filename = suggestedFilename || parseFilenameFromHeader(contentDisposition);
+    const file = new File([blob], filename, {
+        type: blob.type || 'image/jpeg',
+        lastModified: Date.now(),
+    });
+
+    assignDroppedFile(file);
+    segmentStatus.classList.remove('error-text');
+    segmentStatus.textContent = 'Phone photo received. Ready to detect products.';
+}
+
+async function pollPhoneCaptureStatus(token) {
+    if (phonePollInFlight) {
+        return;
+    }
+
+    phonePollInFlight = true;
+    try {
+        const response = await fetch(`/phone-capture/session/${encodeURIComponent(token)}/status`);
+        const data = await parseJsonSafe(response);
+
+        if (!response.ok) {
+            stopPhoneCapturePolling({ keepPanel: true });
+            setPhoneCaptureStatus(data.detail || 'Phone capture session ended.', true);
+            return;
+        }
+
+        if (data.status === 'ready') {
+            setPhoneCaptureStatus('Photo detected. Transferring to desktop...');
+            await pullPhoneCaptureToDesktop(token, data.filename || 'phone-capture.jpg');
+            setPhoneCaptureStatus('Phone photo transferred successfully.');
+            stopPhoneCapturePolling({ keepPanel: true });
+            return;
+        }
+
+        if (data.status === 'expired') {
+            stopPhoneCapturePolling({ keepPanel: true });
+            setPhoneCaptureStatus('Session expired. Start a new phone capture.', true);
+            return;
+        }
+
+        if (data.status === 'consumed') {
+            stopPhoneCapturePolling({ keepPanel: true });
+            setPhoneCaptureStatus('Session already consumed.', true);
+        }
+    } catch (error) {
+        stopPhoneCapturePolling({ keepPanel: true });
+        setPhoneCaptureStatus(`Capture polling failed: ${error.message}`, true);
+    } finally {
+        phonePollInFlight = false;
+    }
+}
+
+async function startPhoneCaptureSession() {
+    stopPhoneCapturePolling();
+    phoneCaptureBtn.disabled = true;
+    phoneCapturePanel.classList.remove('hidden');
+    setPhoneCaptureStatus('Creating phone capture session...');
+
+    try {
+        const response = await fetch('/phone-capture/session', { method: 'POST' });
+        const data = await parseJsonSafe(response);
+
+        if (!response.ok) {
+            throw new Error(data.detail || 'Could not create phone capture session');
+        }
+
+        activePhoneSessionToken = data.token;
+        const phoneUrl = data.phone_page_url;
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(phoneUrl)}`;
+
+        phoneCaptureLink.href = phoneUrl;
+        phoneCaptureLink.textContent = phoneUrl;
+        phoneCaptureQr.src = qrUrl;
+        setPhoneCaptureStatus('Scan the QR code with your phone, take one photo, and send it.');
+
+        const pollIntervalMs = Number.isInteger(data.poll_interval_ms) ? data.poll_interval_ms : 2000;
+        phonePollTimer = setInterval(() => {
+            if (activePhoneSessionToken) {
+                pollPhoneCaptureStatus(activePhoneSessionToken);
+            }
+        }, pollIntervalMs);
+
+        phoneCaptureBtn.disabled = false;
+    } catch (error) {
+        setPhoneCaptureStatus(`Error: ${error.message}`, true);
+        phoneCaptureBtn.disabled = false;
+    }
+}
+
 pickBtn.addEventListener('click', () => imageInput.click());
+phoneCaptureBtn.addEventListener('click', () => startPhoneCaptureSession());
 
 imageInput.addEventListener('change', () => {
     const file = imageInput.files && imageInput.files[0] ? imageInput.files[0] : null;
     renderPreview(file);
+    stopPhoneCapturePolling();
 });
 
 ['dragenter', 'dragover'].forEach((eventName) => {
@@ -421,6 +619,7 @@ dropzone.addEventListener('drop', (event) => {
 
     segmentStatus.classList.remove('error-text');
     assignDroppedFile(file);
+    stopPhoneCapturePolling();
 });
 
 async function analyzeSelectedProducts(productIds, { autoSingle = false } = {}) {
@@ -449,7 +648,7 @@ async function analyzeSelectedProducts(productIds, { autoSingle = false } = {}) 
 }
 
 segmentBtn.addEventListener('click', async () => {
-    const file = imageInput.files[0];
+    const file = getCurrentImageFile();
     if (!file) {
         alert('Please choose an image first.');
         return;

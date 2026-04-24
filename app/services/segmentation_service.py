@@ -40,24 +40,24 @@ class SegmentationService:
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
         self._sessions: dict[str, dict[str, SessionProduct]] = {}
+        self._workflow: YOLOWorldProductWorkflow | None = None
 
-        model_path = str(self._resolve_model_path(self._settings.yolo_model_path))
-        self._workflow = YOLOWorldProductWorkflow(
-            model_name=model_path,
-            world_classes=[
-                "food product",
-                "package",
-                "box",
-                "bottle",
-                "can",
-                "carton",
-                "jar",
-                "pouch",
-            ],
-        )
-
-        if not self._settings.enable_yolo:
-            self._workflow.model = None
+        if self._settings.enable_yolo:
+            model_path = str(self._resolve_model_path(self._settings.yolo_model_path))
+            self._workflow = YOLOWorldProductWorkflow(
+                model_name=model_path,
+                world_classes=[
+                    "food product",
+                    "package",
+                    "box",
+                    "bottle",
+                    "can",
+                    "carton",
+                    "jar",
+                    "pouch",
+                ],
+            )
+        else:
             logger.info("YOLO disabled by config (ENABLE_YOLO=false)")
 
     async def segment_upload(
@@ -165,7 +165,7 @@ class SegmentationService:
         return detections[:12]
 
     def _detect_with_yolo(self, image: np.ndarray) -> list[Detection]:
-        if self._workflow.model is None:
+        if self._workflow is None or self._workflow.model is None:
             return []
 
         raw_detections = self._workflow._detect_with_yolo_world(image)
