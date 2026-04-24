@@ -24,17 +24,29 @@ class BarcodeDetection:
 
 
 class BarcodeService:
+    def __init__(self, enabled: bool = True) -> None:
+        self._enabled = enabled
+
     def get_readiness(self) -> tuple[bool, str, dict[str, bool]]:
         backends = {
+            "enabled": self._enabled,
             "opencv_qr": True,
             "opencv_barcode": hasattr(cv2, "barcode_BarcodeDetector"),
             "pyzbar": zbar_decode is not None,
         }
+
+        if not self._enabled:
+            return False, "disabled_by_config", backends
+
         ready = backends["opencv_barcode"] or backends["pyzbar"]
         reason = "ready" if ready else "no_1d_barcode_backend"
         return ready, reason, backends
 
     def extract(self, image_path: str) -> BarcodeDetection | None:
+        if not self._enabled:
+            logger.info("[BARCODE] Skipped: disabled_by_config")
+            return None
+
         image = cv2.imread(image_path)
         if image is None:
             return None

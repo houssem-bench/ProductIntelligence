@@ -45,6 +45,7 @@ class Settings:
     grok_api_key: str
     grok_model: str
     grok_base_url: str
+    enable_barcode: bool
 
     enable_yolo: bool
     yolo_model_path: str
@@ -92,9 +93,10 @@ def get_settings() -> Settings:
         lens_max_matches=max(1, int(os.getenv("LENS_MAX_MATCHES", "5"))),
         lens_country=os.getenv("LENS_COUNTRY", "TN").strip(),
         lens_safe=os.getenv("LENS_SAFE", "off").strip().lower(),
-        grok_api_key=os.getenv("GROK_API_KEY", "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").strip(),
+        grok_api_key=os.getenv("GROK_API_KEY", "").strip(),
         grok_model=os.getenv("GROK_MODEL", "llama-3.3-70b-versatile").strip(),
         grok_base_url=(os.getenv("GROK_BASE_URL", "https://api.groq.com/openai/v1").strip() or "https://api.groq.com/openai/v11").rstrip("/"),
+        enable_barcode=_to_bool(os.getenv("ENABLE_BARCODE"), default=False),
         enable_yolo=_to_bool(os.getenv("ENABLE_YOLO"), default=True),
         yolo_model_path=os.getenv("YOLO_MODEL_PATH", default_model_path),
         yolo_conf_threshold=float(os.getenv("YOLO_CONF_THRESHOLD", "0.015")),

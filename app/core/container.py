@@ -30,7 +30,7 @@ class ServiceContainer:
         self.lens_provider = LensProvider(self.http, settings, self.cache)
         self.product_repository = ProductRepository()
 
-        self.barcode_service = BarcodeService()
+        self.barcode_service = BarcodeService(enabled=settings.enable_barcode)
         self.lens_service = LensService(self.lens_provider, settings)
         self.ocr_service = OCRService(settings)
         self.segmentation_service = SegmentationService(settings)
