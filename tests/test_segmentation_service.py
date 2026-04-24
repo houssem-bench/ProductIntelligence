@@ -26,6 +26,7 @@ def _build_settings(tmp_path: Path) -> Settings:
         retry_backoff_seconds=0.1,
         cache_ttl_seconds=30,
         max_parallel_analyses=2,
+        database_url="sqlite:///test_segmentation_service.db",
         off_user_agent="test-agent",
         serpapi_key="",
         public_base_url="",
@@ -45,6 +46,9 @@ def _build_settings(tmp_path: Path) -> Settings:
         uploads_dir=uploads_dir,
         incoming_dir=incoming_dir,
         crops_dir=crops_dir,
+        phone_capture_ttl_seconds=300,
+        phone_capture_max_upload_mb=15,
+        phone_capture_poll_interval_ms=2000,
     )
 
 

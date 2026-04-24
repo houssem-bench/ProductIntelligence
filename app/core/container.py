@@ -11,6 +11,7 @@ from app.services.barcode_service import BarcodeService
 from app.services.grok_service import GrokService
 from app.services.lens_service import LensService
 from app.services.ocr_service import OCRService
+from app.services.phone_capture_service import PhoneCaptureService
 from app.services.product_cache_service import ProductCacheService
 from app.services.products_list_service import ProductsListService
 from app.services.segmentation_service import SegmentationService
@@ -29,10 +30,11 @@ class ServiceContainer:
         self.lens_provider = LensProvider(self.http, settings, self.cache)
         self.product_repository = ProductRepository()
 
-        self.barcode_service = BarcodeService()
+        self.barcode_service = BarcodeService(enabled=settings.enable_barcode)
         self.lens_service = LensService(self.lens_provider, settings)
         self.ocr_service = OCRService(settings)
         self.segmentation_service = SegmentationService(settings)
+        self.phone_capture_service = PhoneCaptureService(settings)
         self.grok_service = GrokService(self.http, settings)
         self.products_list_service = ProductsListService(self.grok_service)
         self.product_cache_service = ProductCacheService(
