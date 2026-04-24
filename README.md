@@ -198,6 +198,7 @@ See `.env.example`. Main variables:
 - `MAX_PARALLEL_ANALYSES`
 - `ENABLE_YOLO`
 - `YOLO_MODEL_PATH`
+- `ENABLE_OCR`
 - `TESSERACT_CMD`
 - `PHONE_CAPTURE_TTL_SECONDS`
 - `PHONE_CAPTURE_MAX_UPLOAD_MB`
@@ -232,7 +233,7 @@ Included tests:
 
 ## Current limitations
 
-- OCR depends on local Tesseract availability.
+- OCR can be disabled with `ENABLE_OCR=false`; when enabled, it depends on local Tesseract availability.
 - Lens step requires `SERPAPI_KEY` plus a public image URL base (`PUBLIC_BASE_URL` or `NGROK_BASE_URL`) reachable from SerpAPI, or `ENABLE_NGROK=true` so the service can create one at runtime.
 - In-memory session/cache storage is not distributed.
 

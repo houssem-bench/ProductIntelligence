@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 from dataclasses import dataclass
 from typing import Iterable
 
@@ -10,8 +11,10 @@ import numpy as np
 
 try:
     from pyzbar.pyzbar import decode as zbar_decode
+    from pyzbar.pyzbar import ZBarSymbol
 except Exception:  # pragma: no cover - optional dependency
     zbar_decode = None
+    ZBarSymbol = None
 
 
 logger = logging.getLogger(__name__)
@@ -24,8 +27,17 @@ class BarcodeDetection:
 
 
 class BarcodeService:
-    def __init__(self, enabled: bool = True) -> None:
+    def __init__(
+        self,
+        enabled: bool = True,
+        max_decode_seconds: float = 2.5,
+        max_candidates: int = 24,
+        max_pyzbar_attempts: int = 8,
+    ) -> None:
         self._enabled = enabled
+        self._max_decode_seconds = max(0.5, float(max_decode_seconds))
+        self._max_candidates = max(4, int(max_candidates))
+        self._max_pyzbar_attempts = max(1, int(max_pyzbar_attempts))
 
     def get_readiness(self) -> tuple[bool, str, dict[str, bool]]:
         backends = {
@@ -51,7 +63,29 @@ class BarcodeService:
         if image is None:
             return None
 
+        started_at = time.perf_counter()
+        candidate_count = 0
+        pyzbar_attempts = 0
+
         for candidate in self._iter_candidates(image):
+            candidate_count += 1
+            elapsed_s = time.perf_counter() - started_at
+            if elapsed_s >= self._max_decode_seconds:
+                logger.info(
+                    "[BARCODE] Decode budget exhausted elapsed_ms=%.1f candidates=%s pyzbar_attempts=%s",
+                    elapsed_s * 1000,
+                    candidate_count - 1,
+                    pyzbar_attempts,
+                )
+                break
+            if candidate_count > self._max_candidates:
+                logger.info(
+                    "[BARCODE] Candidate budget exhausted candidates=%s max_candidates=%s",
+                    candidate_count - 1,
+                    self._max_candidates,
+                )
+                break
+
             qr = self._decode_qr(candidate)
             if qr:
                 logger.info("[BARCODE] QR decoded EAN=%s", qr)
@@ -63,6 +97,10 @@ class BarcodeService:
                 logger.info("[BARCODE] Barcode decoded type=%s", code_type)
                 return BarcodeDetection(code=code, format_type=code_type)
 
+            if pyzbar_attempts >= self._max_pyzbar_attempts:
+                continue
+
+            pyzbar_attempts += 1
             zbar_barcode = self._decode_with_pyzbar(candidate)
             if zbar_barcode:
                 code, code_type = zbar_barcode
@@ -73,11 +111,11 @@ class BarcodeService:
         return None
 
     def _iter_candidates(self, image: np.ndarray) -> Iterable[np.ndarray]:
+        # Keep candidate generation bounded to avoid very long decode times on noisy phone images.
         h, w = image.shape[:2]
         rois: list[np.ndarray] = [
             image,
             image[int(h * 0.40) :, :],
-            image[int(h * 0.50) :, :],
             image[int(h * 0.60) :, int(w * 0.05) : int(w * 0.95)],
         ]
 
@@ -110,7 +148,7 @@ class BarcodeService:
             ]
 
             for variant in variants:
-                for scale in (1.0, 1.8, 2.4):
+                for scale in (1.0, 1.6):
                     if scale == 1.0:
                         scaled = variant
                     else:
@@ -124,7 +162,7 @@ class BarcodeService:
 
                     yield scaled
                     yield cv2.rotate(scaled, cv2.ROTATE_90_CLOCKWISE)
-                    yield cv2.rotate(scaled, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                    yield cv2.rotate(scaled, cv2.ROTATE_180)
 
     def _decode_qr(self, image: np.ndarray) -> str | None:
         try:
@@ -157,8 +195,25 @@ class BarcodeService:
         if zbar_decode is None:
             return None
 
+        gray = image if len(image.shape) == 2 else cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+        decode_kwargs: dict[str, object] = {}
+        if ZBarSymbol is not None:
+            decode_kwargs["symbols"] = [
+                ZBarSymbol.EAN13,
+                ZBarSymbol.EAN8,
+                ZBarSymbol.UPCA,
+                ZBarSymbol.UPCE,
+                ZBarSymbol.QRCODE,
+                ZBarSymbol.CODE128,
+                ZBarSymbol.CODE39,
+                ZBarSymbol.I25,
+            ]
+
         try:
-            decoded_items = zbar_decode(image)
+            decoded_items = zbar_decode(gray, **decode_kwargs)
+        except TypeError:
+            decoded_items = zbar_decode(gray)
         except Exception as exc:
             logger.debug("[BARCODE] pyzbar decode failed: %s", exc)
             return None

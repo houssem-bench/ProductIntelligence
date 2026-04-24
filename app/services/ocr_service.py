@@ -24,8 +24,13 @@ class OCRExtraction:
 class OCRService:
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
+        self._enabled = bool(getattr(settings, "enable_ocr", True))
         self._pytesseract = None
         self._runtime_available = False
+
+        if not self._enabled:
+            logger.info("[OCR] Disabled: disabled_by_config")
+            return
 
         try:
             import pytesseract
@@ -48,6 +53,8 @@ class OCRService:
             logger.info("[OCR] Disabled: pytesseract package not available")
 
     def get_readiness(self) -> tuple[bool, str]:
+        if not self._enabled:
+            return False, "disabled_by_config"
         if self._pytesseract is None:
             return False, "missing_pytesseract_package"
         if not self._runtime_available:
@@ -55,6 +62,10 @@ class OCRService:
         return True, "ready"
 
     def extract(self, image_path: str) -> OCRExtraction | None:
+        if not self._enabled:
+            logger.info("[OCR] Skipped: disabled_by_config")
+            return None
+
         image = cv2.imread(image_path)
         if image is None:
             return None

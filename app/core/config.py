@@ -58,6 +58,7 @@ class Settings:
     phone_capture_ttl_seconds: int
     phone_capture_max_upload_mb: int
     phone_capture_poll_interval_ms: int
+    enable_ocr: bool = True
 
 
 @lru_cache(maxsize=1)
@@ -107,4 +108,5 @@ def get_settings() -> Settings:
         phone_capture_ttl_seconds=max(30, int(os.getenv("PHONE_CAPTURE_TTL_SECONDS", "300"))),
         phone_capture_max_upload_mb=max(1, int(os.getenv("PHONE_CAPTURE_MAX_UPLOAD_MB", "15"))),
         phone_capture_poll_interval_ms=max(500, int(os.getenv("PHONE_CAPTURE_POLL_INTERVAL_MS", "2000"))),
+        enable_ocr=_to_bool(os.getenv("ENABLE_OCR"), default=True),
     )
