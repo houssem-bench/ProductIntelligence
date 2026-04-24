@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -22,6 +23,9 @@ except ImportError:
     YOLO = None  # type: ignore[assignment]
     YOLOWorld = None  # type: ignore[assignment]
     ULTRALYTICS_AVAILABLE = False
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -154,17 +158,36 @@ class YOLOWorldProductWorkflow:
         self.model = self._load_model() if ULTRALYTICS_AVAILABLE else None
 
     def _load_model(self):
+        model_name_lower = Path(self.model_name).name.lower()
+        wants_world_model = "world" in model_name_lower
+
+        if not wants_world_model:
+            logger.warning(
+                "YOLO-World disabled: model '%s' is not a '*-world*' checkpoint; falling back to contour detection",
+                self.model_name,
+            )
+            return None
+
+        model = None
         if YOLOWorld is not None:
             model = YOLOWorld(self.model_name)
-            if hasattr(model, "set_classes"):
-                model.set_classes(self.world_classes)
-            return model
-
-        if YOLO is not None:
+        elif YOLO is not None:
             model = YOLO(self.model_name)
+
+        if model is None:
+            return None
+
+        try:
             if hasattr(model, "set_classes"):
                 model.set_classes(self.world_classes)
-            return model
+        except AttributeError:
+            logger.exception(
+                "YOLO-World load failed for model '%s': set_classes is not supported by this checkpoint",
+                self.model_name,
+            )
+            return None
+
+        return model
 
         return None
 

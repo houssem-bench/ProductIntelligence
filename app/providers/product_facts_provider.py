@@ -160,7 +160,7 @@ class ProductFactsProvider:
             r"\b[\w-]*buy[\w-]*\b",  # elsabuy, buy-now, etc.
             r"\bby\b",
             r"\b(?:shop|store|seller|marketplace|deal)\b",
-            r"\b(?:izy|zedna|talabat|ayshek|aychek|nestle|wheat|honey|mint|gel|paste|miel|green|clean|fresh|vanille)\b",
+            r"\b(?:izy|zedna|talabat|ayshek|aychek|nestle|wheat|honey|mint|gel|paste|miel|green|clean|fresh|vanille|Kwik)\b",
         ]
 
         for pattern in marketplace_patterns:

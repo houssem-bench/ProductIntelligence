@@ -96,7 +96,7 @@ def get_settings() -> Settings:
         grok_api_key=os.getenv("GROK_API_KEY", "").strip(),
         grok_model=os.getenv("GROK_MODEL", "llama-3.3-70b-versatile").strip(),
         grok_base_url=(os.getenv("GROK_BASE_URL", "https://api.groq.com/openai/v1").strip() or "https://api.groq.com/openai/v11").rstrip("/"),
-        enable_barcode=_to_bool(os.getenv("ENABLE_BARCODE"), default=False),
+        enable_barcode=_to_bool(os.getenv("ENABLE_BARCODE"), default=True),
         enable_yolo=_to_bool(os.getenv("ENABLE_YOLO"), default=True),
         yolo_model_path=os.getenv("YOLO_MODEL_PATH", default_model_path),
         yolo_conf_threshold=float(os.getenv("YOLO_CONF_THRESHOLD", "0.015")),
